@@ -222,6 +222,11 @@ public class AI_Behavior : MonoBehaviour
         transform.rotation = Quaternion.Euler(0, baseYRotation + angle, 0);
     }
 
+    public string GetCurrentStateName()
+    {
+        return currentState.ToString();
+    }
+
     private void OnDrawGizmos()
     {
         if (!Application.isPlaying) 
