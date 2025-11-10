@@ -3,28 +3,24 @@
 public class AI_Vision : MonoBehaviour
 {
     [Header("Зрение")]
-    public float viewRadius = 10f;      // Радиус в обычном состоянии
+    public float viewRadius = 10f;
     [Range(0, 180)]
     public float viewAngle = 60f;
-    public LayerMask targetMask;
     public LayerMask obstacleMask;
 
-    [Header("Отладка")]
-    public bool showDebug = true;             // Можно выключить в инспекторе
+    [Header("VR")]
+    public Transform playerHead; // <- сюда перетащи Main Camera из XR Origin
 
-    private Transform player;
     private float currentViewRadius;
     private float currentViewAngle;
     private bool isChasing;
 
     void Awake()
     {
-        player = GameObject.FindGameObjectWithTag("Player")?.transform;
         currentViewRadius = viewRadius;
         currentViewAngle = viewAngle;
     }
 
-    // Установить режим погони
     public void SetChaseMode(bool chasing)
     {
         isChasing = chasing;
@@ -34,49 +30,55 @@ public class AI_Vision : MonoBehaviour
 
     public bool CanSeePlayer()
     {
-        if (player == null) return false;
+        if (playerHead == null) return false;
 
-        Vector3 dirToPlayer = (player.position - transform.position).normalized;
-        float distToPlayer = Vector3.Distance(transform.position, player.position);
+        Vector3 eyePosition = transform.position + Vector3.up * 1.5f;
+        Vector3 dirToPlayer = (playerHead.position - eyePosition).normalized;
+        float distToPlayer = Vector3.Distance(eyePosition, playerHead.position);
 
-        if (distToPlayer < currentViewRadius)
+        // Используем направление взгляда AI
+        Vector3 forward = transform.forward;
+
+        var behavior = GetComponent<AI_Behavior>();
+        if (behavior != null && behavior.lookTarget != null)
+            forward = behavior.lookTarget.forward; // берем поворот глаза
+
+        float angle = Vector3.Angle(forward, dirToPlayer);
+
+        if (distToPlayer < viewRadius && angle < viewAngle / 2)
         {
-            float angle = Vector3.Angle(transform.forward, dirToPlayer);
-            if (angle < viewAngle / 2)
-            {
-                if (!Physics.Raycast(transform.position + Vector3.up * 1.5f, dirToPlayer, distToPlayer, obstacleMask))
-                    return true;
-            }
+            if (!Physics.Raycast(eyePosition, dirToPlayer, distToPlayer, obstacleMask))
+                return true;
         }
+
         return false;
     }
 
-    public Transform GetPlayer() => player;
-
-    // --- Визуализация зрения ---
+    public Transform GetPlayer() => playerHead;
     private void OnDrawGizmos()
     {
-        if (!showDebug) return;
+        Vector3 eyePosition = transform.position + Vector3.up * 1.5f;
 
-        // Цвет в зависимости от состояния
+        Vector3 forward = transform.forward;
+        var behavior = GetComponent<AI_Behavior>();
+        if (behavior != null && behavior.lookTarget != null)
+            forward = behavior.lookTarget.forward;
+
         Gizmos.color = isChasing ? Color.red : Color.green;
 
-        // Радиус текущего обзора
-        Gizmos.DrawWireSphere(transform.position, currentViewRadius);
+        Gizmos.DrawWireSphere(eyePosition, currentViewRadius);
 
-        // Углы зрения
-        Vector3 leftDir = Quaternion.Euler(0, -viewAngle / 2, 0) * transform.forward;
-        Vector3 rightDir = Quaternion.Euler(0, viewAngle / 2, 0) * transform.forward;
+        Vector3 leftDir = Quaternion.Euler(0, -currentViewAngle / 2f, 0) * forward;
+        Vector3 rightDir = Quaternion.Euler(0, currentViewAngle / 2f, 0) * forward;
 
         Gizmos.color = isChasing ? new Color(1f, 0.5f, 0f) : Color.cyan;
-        Gizmos.DrawLine(transform.position, transform.position + leftDir * currentViewRadius);
-        Gizmos.DrawLine(transform.position, transform.position + rightDir * currentViewRadius);
+        Gizmos.DrawLine(eyePosition, eyePosition + leftDir * currentViewRadius);
+        Gizmos.DrawLine(eyePosition, eyePosition + rightDir * currentViewRadius);
 
-        // Если есть игрок — нарисуем луч к нему
-        if (Application.isPlaying && player != null)
+        if (playerHead != null)
         {
             Gizmos.color = CanSeePlayer() ? Color.yellow : Color.gray;
-            Gizmos.DrawLine(transform.position + Vector3.up * 1.5f, player.position + Vector3.up * 1.5f);
+            Gizmos.DrawLine(eyePosition, playerHead.position);
         }
     }
 }

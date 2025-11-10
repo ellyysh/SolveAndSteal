@@ -1,18 +1,20 @@
 ﻿using UnityEngine;
+using UnityEngine.Animations.Rigging;
 
 public class AI_Behavior : MonoBehaviour
 {
     [Header("Время ожидания")]
-    public float investigateWait = 3f;
+    public float investigateWait = 5f;
 
     [Header("Осмотр вокруг")]
-    public float lookAroundTime = 3f;
-    public float lookSpeed = 60f;
-    public float lookAngle = 60f;
+    public float lookAroundTime = 5f;
+    public float lookSpeed = 90f;
+    public float lookAngle = 90f;
 
     private AI_Navigation nav;
     private AI_Vision vision;
     private AI_Hearing hearing;
+    private Animator animator;
 
     private enum State { Patrol, Investigate, Wait, Chase }
     private State currentState = State.Patrol;
@@ -29,11 +31,15 @@ public class AI_Behavior : MonoBehaviour
 
     private Vector3 lastSeenPlayerPosition;
 
+    public Transform lookTarget; // Укажи в инспекторе или создавай в коде
+    public OverrideTransform overrideTransform; // ← сюда укажешь компонент
+
     void Awake()
     {
         nav = GetComponent<AI_Navigation>();
         vision = GetComponent<AI_Vision>();
         hearing = GetComponent<AI_Hearing>();
+        animator = GetComponent<Animator>();
     }
 
     void Start()
@@ -70,6 +76,7 @@ public class AI_Behavior : MonoBehaviour
             isInvestigating = false;
             StartLookAround();
         }
+        ResetLook();
     }
 
     // ---------------- Исследование (шум/объект) ----------------
@@ -150,6 +157,7 @@ public class AI_Behavior : MonoBehaviour
                 if (isLookingAround)
                 {
                     LookAround();
+                    animator.SetTrigger("Wait");
                     lookAroundTimer += Time.deltaTime;
 
                     if (vision.CanSeePlayer())
@@ -161,6 +169,7 @@ public class AI_Behavior : MonoBehaviour
                     if (lookAroundTimer >= lookAroundTime)
                     {
                         isLookingAround = false;
+                        ResetLook();
                         StopChase();
                         return;
                     }
@@ -201,6 +210,7 @@ public class AI_Behavior : MonoBehaviour
         nav.GoToNextPoint();
 
         isLookingAround = false;
+        ResetLook();
         lookAroundTimer = 0f;
     }
 
@@ -213,18 +223,49 @@ public class AI_Behavior : MonoBehaviour
         lookTimer = 0f;
         lookAroundTimer = 0f;
         baseYRotation = transform.eulerAngles.y;
+        
     }
 
     private void LookAround()
     {
         lookTimer += Time.deltaTime * lookSpeed;
         float angle = Mathf.Sin(lookTimer * Mathf.Deg2Rad) * lookAngle;
-        transform.rotation = Quaternion.Euler(0, baseYRotation + angle, 0);
+        lookTarget.rotation = Quaternion.Euler(0, transform.eulerAngles.y + angle, 0);
+
+        if (lookAroundTimer >= lookAroundTime)
+        {
+            isLookingAround = false;
+            ResetLook(); // 👈 вызываем сброс здесь
+        }
     }
+
+
+    public bool IsLookingAround() => isLookingAround;
 
     public string GetCurrentStateName()
     {
+        if (currentState == State.Wait && isLookingAround)
+            return "LookAround"; // <-- новое состояние для AnimationManager
         return currentState.ToString();
+    }
+    private void ResetLook()
+    {
+        if (lookTarget == null || overrideTransform == null)
+            return;
+
+        // Отключаем временно влияние Rig
+        overrideTransform.weight = 0f;
+
+        // Через 0.1 секунды возвращаем вес обратно
+        StartCoroutine(RestoreRigWeight());
+        // Сбрасываем локальный поворот
+        lookTarget.localRotation = Quaternion.identity;
+    }
+
+    private System.Collections.IEnumerator RestoreRigWeight()
+    {
+        yield return new WaitForSeconds(0.1f);
+        overrideTransform.weight = 1f;
     }
 
     private void OnDrawGizmos()
