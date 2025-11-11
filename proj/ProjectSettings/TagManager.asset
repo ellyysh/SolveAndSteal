@@ -12,6 +12,12 @@ TagManager:
   - 
   - Water
   - UI
+  - Wall
+  - Player
+  - Object
+  - floor
+  - AI
+  - Teleport
   - 
   - 
   - 
@@ -30,13 +36,7 @@ TagManager:
   - 
   - 
   - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
+  - XR Simulation
   - 
   m_SortingLayers:
   - name: Default
