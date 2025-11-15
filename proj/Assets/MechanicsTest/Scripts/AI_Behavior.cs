@@ -20,7 +20,6 @@ public class AI_Behavior : MonoBehaviour
     private State currentState = State.Patrol;
 
     private float waitTimer;
-    private bool isInvestigating = false;
     private bool playerVisible = false;
     private Vector3 noisePosition;
 
@@ -73,7 +72,6 @@ public class AI_Behavior : MonoBehaviour
         {
             currentState = State.Wait;
             waitTimer = 0f;
-            isInvestigating = false;
             StartLookAround();
         }
         ResetLook();
@@ -91,7 +89,6 @@ public class AI_Behavior : MonoBehaviour
         if (nav.ReachedDestination(0.5f))
         {
             currentState = State.Wait;
-            isInvestigating = true;
             waitTimer = 0f;
             StartLookAround();
         }
@@ -126,7 +123,6 @@ public class AI_Behavior : MonoBehaviour
         // После ожидания возвращаемся к патрулю
         if (!isLookingAround && waitTimer >= investigateWait)
         {
-            isInvestigating = false;
             currentState = State.Patrol;
             nav.GoToNextPoint();
         }
@@ -186,7 +182,6 @@ public class AI_Behavior : MonoBehaviour
             noisePosition = position;
             currentState = State.Investigate;
             nav.MoveTo(noisePosition);
-            isInvestigating = true;
             waitTimer = 0f;
         }
     }
