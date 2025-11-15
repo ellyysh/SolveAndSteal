@@ -19,14 +19,8 @@ public class EyeCamera : MonoBehaviour
     public float focusSpeed = 4f;
     public float relaxSpeed = 1.8f;
 
-    [Header("Pupil BlendShapes")]
-    public SkinnedMeshRenderer eyeMesh;
-    public int narrowKey = 1; // сужение
-    public int wideKey = 2;   // расширение
-    public float pupilChangeSpeed = 60f;
-
-    private float narrowValue = 0;
-    private float wideValue = 0;
+    [Header("Pupil Controller")]
+    public PupilController pupilController; // <-- ссылка на PupilController
 
     private int currentScanIndex = 0;
     private float stayTimer = 0;
@@ -41,12 +35,15 @@ public class EyeCamera : MonoBehaviour
     void Start()
     {
         baseRotation = transform.rotation;
+
+        if (pupilController == null)
+            Debug.LogWarning("PupilController not assigned!");
     }
 
     void Update()
     {
         DetectTarget();
-        UpdatePupil(); // <-- добавлено
+        UpdatePupilState(); // <-- теперь управляем через PupilController
 
         switch (currentState)
         {
@@ -56,10 +53,27 @@ public class EyeCamera : MonoBehaviour
         }
     }
 
+    void UpdatePupilState()
+    {
+        if (pupilController == null) return;
+
+        switch (currentState)
+        {
+            case State.Scan:
+                pupilController.SetNormal();
+                break;
+            case State.Focus:
+                pupilController.SetNarrow();
+                break;
+            case State.Relax:
+                pupilController.SetWide(); // слегка расширен в режиме relax
+                break;
+        }
+    }
+
     void DetectTarget()
     {
         target = null;
-
         Collider[] hits = Physics.OverlapSphere(transform.position, viewDistance, targetLayer);
 
         foreach (var h in hits)
@@ -81,63 +95,23 @@ public class EyeCamera : MonoBehaviour
             currentState = State.Relax;
     }
 
-    // --- pupils ---
-    void UpdatePupil()
-    {
-        switch (currentState)
-        {
-            case State.Scan:
-                narrowValue = Mathf.MoveTowards(narrowValue, 0, pupilChangeSpeed * Time.deltaTime);
-                wideValue = Mathf.MoveTowards(wideValue, 0, pupilChangeSpeed * Time.deltaTime);
-                break;
-
-            case State.Focus:
-                narrowValue = Mathf.MoveTowards(narrowValue, 100, pupilChangeSpeed * Time.deltaTime);
-                wideValue = Mathf.MoveTowards(wideValue, 0, pupilChangeSpeed * Time.deltaTime);
-                break;
-
-            case State.Relax:
-                wideValue = Mathf.MoveTowards(wideValue, 60, pupilChangeSpeed * Time.deltaTime); // слегка расширен
-                narrowValue = Mathf.MoveTowards(narrowValue, 0, pupilChangeSpeed * Time.deltaTime);
-                break;
-        }
-
-        ApplyPupil();
-    }
-
-    void ApplyPupil()
-    {
-        if (eyeMesh == null) return;
-        eyeMesh.SetBlendShapeWeight(narrowKey, narrowValue);
-        eyeMesh.SetBlendShapeWeight(wideKey, wideValue);
-    }
-
-    // --- SCAN MULTIPLE POINTS ---
     void ScanUpdate()
     {
         if (scanPoints.Length == 0) return;
 
         Transform point = scanPoints[currentScanIndex];
-
         Vector3 dir = (point.position - transform.position).normalized;
 
         shakeTimer += Time.deltaTime * microShakeSpeed;
         float shake = Mathf.Sin(shakeTimer) * microShake;
-
         dir = Quaternion.Euler(0, shake, 0) * dir;
 
         Quaternion targetRot = Quaternion.LookRotation(dir);
-
-        transform.rotation = Quaternion.Slerp(
-            transform.rotation,
-            targetRot,
-            scanSpeed * Time.deltaTime
-        );
+        transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, scanSpeed * Time.deltaTime);
 
         if (Quaternion.Angle(transform.rotation, targetRot) < 3f)
         {
             stayTimer += Time.deltaTime;
-
             if (stayTimer >= scanPointStayTime)
             {
                 currentScanIndex = (currentScanIndex + 1) % scanPoints.Length;
@@ -152,36 +126,24 @@ public class EyeCamera : MonoBehaviour
 
         Vector3 dir = (target.position - transform.position).normalized;
         Quaternion targetRot = Quaternion.LookRotation(dir);
-
-        transform.rotation = Quaternion.Slerp(
-            transform.rotation,
-            targetRot,
-            focusSpeed * Time.deltaTime
-        );
+        transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, focusSpeed * Time.deltaTime);
     }
 
     void RelaxUpdate()
     {
         Quaternion desired = baseRotation;
-
-        transform.rotation = Quaternion.Slerp(
-            transform.rotation,
-            desired,
-            relaxSpeed * Time.deltaTime
-        );
+        transform.rotation = Quaternion.Slerp(transform.rotation, desired, relaxSpeed * Time.deltaTime);
 
         if (Quaternion.Angle(transform.rotation, desired) < 0.5f)
             currentState = State.Scan;
     }
 
-    // --- GIZMOS ---
     void OnDrawGizmos()
     {
         Gizmos.color = Color.cyan;
         Gizmos.DrawLine(transform.position, transform.position + transform.forward * viewDistance);
 
         Gizmos.color = new Color(0f, 0.8f, 1f, 0.25f);
-
         float halfAngle = viewAngle * 0.5f;
 
         Quaternion leftRot = Quaternion.AngleAxis(-halfAngle, Vector3.up);
@@ -195,14 +157,12 @@ public class EyeCamera : MonoBehaviour
 
         int segments = 32;
         Vector3 prevPoint = transform.position + leftDir * viewDistance;
-
         for (int i = 1; i <= segments; i++)
         {
             float t = i / (float)segments;
             float angle = Mathf.Lerp(-halfAngle, halfAngle, t);
             Quaternion rot = Quaternion.AngleAxis(angle, Vector3.up);
             Vector3 dir = rot * transform.forward;
-
             Vector3 nextPoint = transform.position + dir * viewDistance;
             Gizmos.DrawLine(prevPoint, nextPoint);
             prevPoint = nextPoint;
