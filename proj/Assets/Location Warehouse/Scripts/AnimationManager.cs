@@ -31,7 +31,7 @@ public class AnimationManager : MonoBehaviour
         // —брасываем все старые триггеры, чтобы не зависнуть в переходах
         animator.ResetTrigger("Patrol");
         animator.ResetTrigger("Investigate");
-        animator.ResetTrigger("Chase");
+        animator.ResetTrigger("Flee");
         animator.ResetTrigger("Wait");
 
         switch (stateName)
@@ -44,8 +44,8 @@ public class AnimationManager : MonoBehaviour
                 animator.SetTrigger("Investigate");
                 break;
 
-            case "Chase":
-                animator.SetTrigger("Chase");
+            case "Flee":
+                animator.SetTrigger("Flee");
                 break;
 
             case "Wait":
