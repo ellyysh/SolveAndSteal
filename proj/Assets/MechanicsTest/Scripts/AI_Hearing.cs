@@ -10,15 +10,18 @@ public class AI_Hearing : MonoBehaviour
     public bool CanHear(Vector3 noisePos)
     {
         float distance = Vector3.Distance(transform.position, noisePos);
-        if (distance > hearingRadius) return false;
+        if (distance > hearingRadius)
+            return false;
 
-        // Проверяем, нет ли препятствий между источником и ИИ
-        Vector3 dir = (transform.position - noisePos).normalized;
-        if (Physics.Raycast(noisePos, dir, distance, obstacleMask))
+        // Правильное направление — от AI к шуму!
+        Vector3 dir = (noisePos - transform.position).normalized;
+
+        if (Physics.Raycast(transform.position, dir, distance, obstacleMask))
             return false; // стена мешает
 
         return true;
     }
+
 
     private void OnDrawGizmosSelected()
     {

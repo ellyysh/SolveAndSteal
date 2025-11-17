@@ -28,9 +28,7 @@ public class NoiseEmitter : MonoBehaviour
         {
             var ai = col.GetComponent<AI_Behavior>();
             if (ai != null)
-            {
                 ai.HearNoise(transform.position);
-            }
         }
 
         isNoiseActive = true;

@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.Animations.Rigging;
+using UnityEngine.Events;
 
 public class AI_Behavior : MonoBehaviour
 {
@@ -16,11 +17,10 @@ public class AI_Behavior : MonoBehaviour
     private AI_Hearing hearing;
     private Animator animator;
 
-    private enum State { Patrol, Investigate, Wait, Chase }
+    private enum State { Patrol, Investigate, Wait, Flee }
     private State currentState = State.Patrol;
 
     private float waitTimer;
-    private bool isInvestigating = false;
     private bool playerVisible = false;
     private Vector3 noisePosition;
 
@@ -29,10 +29,11 @@ public class AI_Behavior : MonoBehaviour
     private float baseYRotation;
     private float lookAroundTimer = 0f;
 
-    private Vector3 lastSeenPlayerPosition;
-
     public Transform lookTarget; // Укажи в инспекторе или создавай в коде
     public OverrideTransform overrideTransform; // ← сюда укажешь компонент
+    
+    [Header("Убежище")]
+    public Transform fleePoint; // точка, куда убегаем при обнаружении игрока
 
     void Awake()
     {
@@ -56,7 +57,7 @@ public class AI_Behavior : MonoBehaviour
             case State.Patrol: PatrolUpdate(); break;
             case State.Investigate: InvestigateUpdate(); break;
             case State.Wait: WaitUpdate(); break;
-            case State.Chase: ChaseUpdate(); break;
+            case State.Flee: FleeUpdate(); break;
         }
     }
 
@@ -65,7 +66,7 @@ public class AI_Behavior : MonoBehaviour
     {
         if (playerVisible)
         {
-            StartChase();
+            StartFlee();
             return;
         }
 
@@ -73,7 +74,6 @@ public class AI_Behavior : MonoBehaviour
         {
             currentState = State.Wait;
             waitTimer = 0f;
-            isInvestigating = false;
             StartLookAround();
         }
         ResetLook();
@@ -84,14 +84,13 @@ public class AI_Behavior : MonoBehaviour
     {
         if (playerVisible)
         {
-            StartChase();
+            StartFlee();
             return;
         }
 
         if (nav.ReachedDestination(0.5f))
         {
             currentState = State.Wait;
-            isInvestigating = true;
             waitTimer = 0f;
             StartLookAround();
         }
@@ -102,7 +101,7 @@ public class AI_Behavior : MonoBehaviour
     {
         if (playerVisible)
         {
-            StartChase();
+            StartFlee();
             return;
         }
 
@@ -115,7 +114,7 @@ public class AI_Behavior : MonoBehaviour
 
             if (vision.CanSeePlayer())
             {
-                StartChase();
+                StartFlee();
                 return;
             }
 
@@ -126,92 +125,59 @@ public class AI_Behavior : MonoBehaviour
         // После ожидания возвращаемся к патрулю
         if (!isLookingAround && waitTimer >= investigateWait)
         {
-            isInvestigating = false;
             currentState = State.Patrol;
             nav.GoToNextPoint();
         }
     }
 
-    // ---------------- Погоня ----------------
-    private void ChaseUpdate()
+    // ---------------- Убегание ----------------
+    private void FleeUpdate()
     {
-        var player = vision.GetPlayer();
-
-        if (playerVisible && player != null)
+        if (fleePoint == null)
         {
-            nav.MoveTo(player.position);
-            isLookingAround = false;
-            lastSeenPlayerPosition = player.position;
+            // если точка не задана — возвращаемся к патрулю
+            currentState = State.Patrol;
+            nav.GoToNextPoint();
+            return;
         }
-        else
+        
+        nav.MoveTo(fleePoint.position);
+        isLookingAround = false;
+        
+        if (nav.ReachedDestination(0.5f))
         {
-            if (!nav.ReachedDestination(0.5f))
-            {
-                nav.MoveTo(lastSeenPlayerPosition);
-            }
-            else
-            {
-                if (!isLookingAround)
-                    StartLookAround();
-
-                if (isLookingAround)
-                {
-                    LookAround();
-                    animator.SetTrigger("Wait");
-                    lookAroundTimer += Time.deltaTime;
-
-                    if (vision.CanSeePlayer())
-                    {
-                        StartChase();
-                        return;
-                    }
-
-                    if (lookAroundTimer >= lookAroundTime)
-                    {
-                        isLookingAround = false;
-                        ResetLook();
-                        StopChase();
-                        return;
-                    }
-                }
-            }
+            Debug.Log("вас раскрыли!");
+            // достигли убежища — вызвать событие и перейти к ожиданию/осмотру
+            
+            if (animator != null)
+                animator.SetTrigger("Wait");
+            currentState = State.Wait;
+            waitTimer = 0f;
+            StartLookAround();
         }
     }
 
     // ---------------- Реакция на шум ----------------
     public void HearNoise(Vector3 position)
     {
-        if (currentState != State.Chase && hearing.CanHear(position))
+        if (currentState != State.Flee && hearing.CanHear(position))
         {
             noisePosition = position;
             currentState = State.Investigate;
             nav.MoveTo(noisePosition);
-            isInvestigating = true;
             waitTimer = 0f;
         }
     }
 
     // ---------------- Переходы ----------------
-    private void StartChase()
+    private void StartFlee()
     {
-        currentState = State.Chase;
-        vision.SetChaseMode(true);
-        isLookingAround = false;
-
-        var player = vision.GetPlayer();
-        if (player != null)
-            lastSeenPlayerPosition = player.position;
-    }
-
-    private void StopChase()
-    {
+        currentState = State.Flee;
+        // убеждаемcя, что режим погони выключен
         vision.SetChaseMode(false);
-        currentState = State.Patrol;
-        nav.GoToNextPoint();
-
         isLookingAround = false;
-        ResetLook();
-        lookAroundTimer = 0f;
+        if (animator != null)
+            animator.SetTrigger("Flee");
     }
 
     // ---------------- Осмотр ----------------
@@ -235,7 +201,7 @@ public class AI_Behavior : MonoBehaviour
         if (lookAroundTimer >= lookAroundTime)
         {
             isLookingAround = false;
-            ResetLook(); // 👈 вызываем сброс здесь
+            ResetLook(); // вызываем сброс здесь
         }
     }
 
@@ -277,7 +243,7 @@ public class AI_Behavior : MonoBehaviour
             State.Patrol => Color.blue, 
             State.Investigate => Color.yellow, 
             State.Wait => Color.white, 
-            State.Chase => Color.red, 
+            State.Flee => Color.green, 
             _ => Color.gray 
         }; 
         Gizmos.DrawSphere(transform.position + Vector3.up * 2f, 0.2f);
