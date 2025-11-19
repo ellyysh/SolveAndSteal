@@ -9,7 +9,10 @@ public class AI_Vision : MonoBehaviour
     public LayerMask obstacleMask;
 
     [Header("VR")]
-    public Transform playerHead; // <- сюда перетащи Main Camera из XR Origin
+    public Transform playerHead;
+
+    [Header("Кость головы (для анимации)")]
+    public Transform headBone; // <-- сюда перетащи HeadBone из модели
 
     private float currentViewRadius;
     private float currentViewAngle;
@@ -36,16 +39,12 @@ public class AI_Vision : MonoBehaviour
         Vector3 dirToPlayer = (playerHead.position - eyePosition).normalized;
         float distToPlayer = Vector3.Distance(eyePosition, playerHead.position);
 
-        // Используем направление взгляда AI
-        Vector3 forward = transform.forward;
-
-        var behavior = GetComponent<AI_Behavior>();
-        if (behavior != null && behavior.lookTarget != null)
-            forward = behavior.lookTarget.forward; // берем поворот глаза
+        // Направление взгляда — из головы, если она есть
+        Vector3 forward = headBone != null ? headBone.forward : transform.forward;
 
         float angle = Vector3.Angle(forward, dirToPlayer);
 
-        if (distToPlayer < viewRadius && angle < viewAngle / 2)
+        if (distToPlayer < currentViewRadius && angle < currentViewAngle / 2f)
         {
             if (!Physics.Raycast(eyePosition, dirToPlayer, distToPlayer, obstacleMask))
                 return true;
@@ -55,23 +54,19 @@ public class AI_Vision : MonoBehaviour
     }
 
     public Transform GetPlayer() => playerHead;
+
     private void OnDrawGizmos()
     {
         Vector3 eyePosition = transform.position + Vector3.up * 1.5f;
-
-        Vector3 forward = transform.forward;
-        var behavior = GetComponent<AI_Behavior>();
-        if (behavior != null && behavior.lookTarget != null)
-            forward = behavior.lookTarget.forward;
+        Vector3 forward = headBone != null ? headBone.forward : transform.forward;
 
         Gizmos.color = isChasing ? Color.red : Color.green;
-
-        Gizmos.DrawWireSphere(eyePosition, currentViewRadius);
+        Gizmos.DrawWireSphere(eyePosition, viewRadius);
 
         Vector3 leftDir = Quaternion.Euler(0, -currentViewAngle / 2f, 0) * forward;
         Vector3 rightDir = Quaternion.Euler(0, currentViewAngle / 2f, 0) * forward;
 
-        Gizmos.color = isChasing ? new Color(1f, 0.5f, 0f) : Color.cyan;
+        Gizmos.color = Color.cyan;
         Gizmos.DrawLine(eyePosition, eyePosition + leftDir * currentViewRadius);
         Gizmos.DrawLine(eyePosition, eyePosition + rightDir * currentViewRadius);
 

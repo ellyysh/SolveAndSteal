@@ -21,31 +21,35 @@ public class AnimationManager : MonoBehaviour
 
         if (newState != currentState)
         {
-            SetAnimationTrigger(newState);
+            SetTriggerForState(newState);
             currentState = newState;
         }
     }
 
-    private void SetAnimationTrigger(string stateName)
+    private void SetTriggerForState(string state)
     {
-        // —брасываем все старые триггеры, чтобы не зависнуть в переходах
-        animator.ResetTrigger("Patrol");
+        animator.ResetTrigger("Walk");
         animator.ResetTrigger("Investigate");
-        animator.ResetTrigger("Flee");
+        animator.ResetTrigger("LookAround");
         animator.ResetTrigger("Wait");
+        animator.ResetTrigger("Flee");
 
-        switch (stateName)
+        switch (state)
         {
             case "Patrol":
-                animator.SetTrigger("Patrol");
+                animator.SetTrigger("Walk");
                 break;
 
             case "Investigate":
-                animator.SetTrigger("Investigate");
+                animator.SetTrigger("Walk");
+                break;
+
+            case "LookAround":
+                animator.SetTrigger("LookAround");
                 break;
 
             case "Flee":
-                animator.SetTrigger("Flee");
+                animator.SetTrigger("Run");
                 break;
 
             case "Wait":
@@ -54,5 +58,4 @@ public class AnimationManager : MonoBehaviour
                 break;
         }
     }
-
 }

@@ -77,6 +77,12 @@ public class AI_Navigation : MonoBehaviour
         return agent.remainingDistance < threshold;
     }
 
+    public float speed
+    {
+        get => agent.speed;
+        set => agent.speed = value;
+    }
+
     public bool HasDestination() => destinationSet;
     public Vector3 GetDestination() => currentDestination;
 
