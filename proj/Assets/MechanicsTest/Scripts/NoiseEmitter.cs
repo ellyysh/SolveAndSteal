@@ -44,18 +44,4 @@ public class NoiseEmitter : MonoBehaviour
                 isNoiseActive = false;
         }
     }
-
-    void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.blue;
-        Gizmos.DrawWireSphere(transform.position, noiseRadius);
-
-        if (isNoiseActive)
-        {
-            float progress = noiseVisualTime / noiseVisualDuration;
-            float currentRadius = Mathf.Lerp(0f, noiseRadius, progress);
-            Gizmos.color = new Color(0f, 0.5f, 1f, 0.3f);
-            Gizmos.DrawWireSphere(transform.position, currentRadius);
-        }
-    }
 }
