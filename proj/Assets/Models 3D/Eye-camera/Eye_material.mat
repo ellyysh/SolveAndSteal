@@ -29,7 +29,7 @@ Material:
   - _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
   - _SPECULAR_SETUP
   m_InvalidKeywords: []
-  m_LightmapFlags: 2
+  m_LightmapFlags: 1
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 1
   m_CustomRenderQueue: 2000
@@ -42,7 +42,7 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _BaseMap:
-        m_Texture: {fileID: 2800000, guid: a1f9aef205d56034ea1f8cc93ad4cdf9, type: 3}
+        m_Texture: {fileID: 2800000, guid: 3cd134981354d6b44b9188a96d1d5428, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _BumpMap:
@@ -62,11 +62,11 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _EmissionMap:
-        m_Texture: {fileID: 2800000, guid: a1f9aef205d56034ea1f8cc93ad4cdf9, type: 3}
+        m_Texture: {fileID: 2800000, guid: 3cd134981354d6b44b9188a96d1d5428, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 2800000, guid: a1f9aef205d56034ea1f8cc93ad4cdf9, type: 3}
+        m_Texture: {fileID: 2800000, guid: 3cd134981354d6b44b9188a96d1d5428, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MetallicGlossMap:
