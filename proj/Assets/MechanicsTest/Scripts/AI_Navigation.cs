@@ -82,6 +82,16 @@ public class AI_Navigation : MonoBehaviour
         get => agent.speed;
         set => agent.speed = value;
     }
+    public void Stop()
+    {
+        if (agent != null)
+            agent.isStopped = true;
+    }
+    public void Resume()
+    {
+        if (agent != null)
+            agent.isStopped = false;
+    }
 
     public bool HasDestination() => destinationSet;
     public Vector3 GetDestination() => currentDestination;

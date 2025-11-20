@@ -17,6 +17,19 @@ public class AnimationManager : MonoBehaviour
     {
         if (ai == null) return;
 
+        // -------------------------
+        //  Freeze анимаций
+        // -------------------------
+        if (ai.IsFrozen)
+        {
+            animator.speed = 0;
+            return;
+        }
+        else
+        {
+            animator.speed = 1;
+        }
+
         string newState = ai.GetCurrentStateName();
 
         if (newState != currentState)
@@ -28,11 +41,13 @@ public class AnimationManager : MonoBehaviour
 
     private void SetTriggerForState(string state)
     {
+        // Сбрасываем все триггеры
         animator.ResetTrigger("Walk");
         animator.ResetTrigger("Investigate");
         animator.ResetTrigger("LookAround");
         animator.ResetTrigger("Wait");
         animator.ResetTrigger("Flee");
+        animator.ResetTrigger("Run");
 
         switch (state)
         {
@@ -48,7 +63,7 @@ public class AnimationManager : MonoBehaviour
                 animator.SetTrigger("LookAround");
                 break;
 
-            case "Flee":
+            case "Run":          //  ПОБЕГ
                 animator.SetTrigger("Run");
                 break;
 
