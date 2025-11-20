@@ -43,10 +43,8 @@ public class AnimationManager : MonoBehaviour
     {
         // Сбрасываем все триггеры
         animator.ResetTrigger("Walk");
-        animator.ResetTrigger("Investigate");
         animator.ResetTrigger("LookAround");
         animator.ResetTrigger("Wait");
-        animator.ResetTrigger("Flee");
         animator.ResetTrigger("Run");
 
         switch (state)
@@ -62,7 +60,9 @@ public class AnimationManager : MonoBehaviour
             case "LookAround":
                 animator.SetTrigger("LookAround");
                 break;
-
+            case "Interest":
+                animator.SetTrigger("Walk");
+                break;
             case "Run":          //  ПОБЕГ
                 animator.SetTrigger("Run");
                 break;

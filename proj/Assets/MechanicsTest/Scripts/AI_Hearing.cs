@@ -22,7 +22,6 @@ public class AI_Hearing : MonoBehaviour
         return true;
     }
 
-
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;

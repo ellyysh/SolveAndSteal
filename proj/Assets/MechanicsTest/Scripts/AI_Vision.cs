@@ -8,6 +8,12 @@ public class AI_Vision : MonoBehaviour
     public float viewAngle = 60f;
     public LayerMask obstacleMask;
 
+    [Header("Обнаружение объектов интереса")]
+    public float interestRadius = 15f;
+    [Range(0, 180)]
+    public float interestViewAngle = 120f;
+    public LayerMask interestLayer;
+
     [Header("VR")]
     public Transform playerHead;
 
@@ -22,13 +28,6 @@ public class AI_Vision : MonoBehaviour
     {
         currentViewRadius = viewRadius;
         currentViewAngle = viewAngle;
-    }
-
-    public void SetChaseMode(bool chasing)
-    {
-        isChasing = chasing;
-        currentViewRadius = chasing ? viewRadius * 2 : viewRadius;
-        currentViewAngle = chasing ? viewAngle * 2 : viewAngle;
     }
 
     public bool CanSeePlayer()
@@ -55,20 +54,67 @@ public class AI_Vision : MonoBehaviour
 
     public Transform GetPlayer() => playerHead;
 
+    public bool TryGetInterestTarget(out Transform interest)
+    {
+        interest = null;
+
+        if (interestRadius <= 0f || interestLayer == 0)
+            return false;
+
+        Vector3 eyePosition = transform.position + Vector3.up * 1.5f;
+        Vector3 forward = headBone != null ? headBone.forward : transform.forward;
+        Collider[] hits = Physics.OverlapSphere(eyePosition, interestRadius, interestLayer);
+
+        float closestDistance = Mathf.Infinity;
+        foreach (var hit in hits)
+        {
+            if (hit == null) continue;
+
+            float distance = Vector3.Distance(eyePosition, hit.transform.position);
+            Vector3 dirToTarget = (hit.transform.position - eyePosition).normalized;
+            float angle = Vector3.Angle(forward, dirToTarget);
+
+            if (angle > interestViewAngle / 2f)
+                continue;
+
+            if (distance < closestDistance)
+            {
+                closestDistance = distance;
+                interest = hit.transform;
+            }
+        }
+
+        return interest != null;
+    }
+
     private void OnDrawGizmos()
     {
         Vector3 eyePosition = transform.position + Vector3.up * 1.5f;
         Vector3 forward = headBone != null ? headBone.forward : transform.forward;
+        float baseViewRadius = currentViewRadius > 0f ? currentViewRadius : viewRadius;
+        float baseViewAngle = currentViewAngle > 0f ? currentViewAngle : viewAngle;
+        float interestAngle = interestViewAngle > 0f ? interestViewAngle : baseViewAngle;
 
         Gizmos.color = isChasing ? Color.red : Color.green;
-        Gizmos.DrawWireSphere(eyePosition, viewRadius);
+        Gizmos.DrawWireSphere(eyePosition, baseViewRadius);
 
-        Vector3 leftDir = Quaternion.Euler(0, -currentViewAngle / 2f, 0) * forward;
-        Vector3 rightDir = Quaternion.Euler(0, currentViewAngle / 2f, 0) * forward;
+        Vector3 leftDir = Quaternion.Euler(0, -baseViewAngle / 2f, 0) * forward;
+        Vector3 rightDir = Quaternion.Euler(0, baseViewAngle / 2f, 0) * forward;
 
         Gizmos.color = Color.cyan;
-        Gizmos.DrawLine(eyePosition, eyePosition + leftDir * currentViewRadius);
-        Gizmos.DrawLine(eyePosition, eyePosition + rightDir * currentViewRadius);
+        Gizmos.DrawLine(eyePosition, eyePosition + leftDir * baseViewRadius);
+        Gizmos.DrawLine(eyePosition, eyePosition + rightDir * baseViewRadius);
+
+        if (interestRadius > 0f)
+        {
+            Vector3 interestLeftDir = Quaternion.Euler(0, -interestAngle / 2f, 0) * forward;
+            Vector3 interestRightDir = Quaternion.Euler(0, interestAngle / 2f, 0) * forward;
+
+            Gizmos.color = Color.magenta;
+            Gizmos.DrawWireSphere(eyePosition, interestRadius);
+            Gizmos.DrawLine(eyePosition, eyePosition + interestLeftDir * interestRadius);
+            Gizmos.DrawLine(eyePosition, eyePosition + interestRightDir * interestRadius);
+        }
 
         if (playerHead != null)
         {

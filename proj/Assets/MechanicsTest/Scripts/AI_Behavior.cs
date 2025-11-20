@@ -226,7 +226,6 @@ public class AI_Behavior : MonoBehaviour
     {
         currentState = State.Flee;
         isLookingAround = false;
-        vision.SetChaseMode(false);
 
         fleePhase = FleePhase.Freeze;
         stateTimer = freezeTime;
