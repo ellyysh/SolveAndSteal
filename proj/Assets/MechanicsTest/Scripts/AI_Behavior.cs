@@ -40,6 +40,9 @@ public class AI_Behavior : MonoBehaviour
     private enum State { Patrol, Investigate, Wait, Flee }
     private State currentState = State.Patrol;
 
+    [Header("Менеджер изменения цвета при побеге")]
+    public EscapeColorChanger escapeManager;
+
     void Awake()
     {
         nav = GetComponent<AI_Navigation>();
@@ -207,7 +210,11 @@ public class AI_Behavior : MonoBehaviour
             nav.MoveTo(fleePoint.position);
 
         if (nav.ReachedDestination(0.5f))
+        {
+            if (escapeManager != null)
+                escapeManager.ChangeColor();
             EnterWaitPhase();
+        }       
     }
 
     // ---------------- ПЛАВНЫЙ ПОВОРОТ ----------------
