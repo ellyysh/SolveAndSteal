@@ -17,35 +17,54 @@ public class AnimationManager : MonoBehaviour
     {
         if (ai == null) return;
 
+        // -------------------------
+        //  Freeze анимаций
+        // -------------------------
+        if (ai.IsFrozen)
+        {
+            animator.speed = 0;
+            return;
+        }
+        else
+        {
+            animator.speed = 1;
+        }
+
         string newState = ai.GetCurrentStateName();
 
         if (newState != currentState)
         {
-            SetAnimationTrigger(newState);
+            SetTriggerForState(newState);
             currentState = newState;
         }
     }
 
-    private void SetAnimationTrigger(string stateName)
+    private void SetTriggerForState(string state)
     {
-        // —брасываем все старые триггеры, чтобы не зависнуть в переходах
-        animator.ResetTrigger("Patrol");
-        animator.ResetTrigger("Investigate");
-        animator.ResetTrigger("Flee");
+        // —брасываем все триггеры
+        animator.ResetTrigger("Walk");
+        animator.ResetTrigger("LookAround");
         animator.ResetTrigger("Wait");
+        animator.ResetTrigger("Run");
 
-        switch (stateName)
+        switch (state)
         {
             case "Patrol":
-                animator.SetTrigger("Patrol");
+                animator.SetTrigger("Walk");
                 break;
 
             case "Investigate":
-                animator.SetTrigger("Investigate");
+                animator.SetTrigger("Walk");
                 break;
 
-            case "Flee":
-                animator.SetTrigger("Flee");
+            case "LookAround":
+                animator.SetTrigger("LookAround");
+                break;
+            case "Interest":
+                animator.SetTrigger("Walk");
+                break;
+            case "Run":          //  ѕќЅ≈√
+                animator.SetTrigger("Run");
                 break;
 
             case "Wait":
@@ -54,5 +73,4 @@ public class AnimationManager : MonoBehaviour
                 break;
         }
     }
-
 }

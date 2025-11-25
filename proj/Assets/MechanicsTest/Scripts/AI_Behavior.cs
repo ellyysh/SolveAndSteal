@@ -1,39 +1,47 @@
 ﻿using UnityEngine;
 using UnityEngine.Animations.Rigging;
-using UnityEngine.Events;
 
 public class AI_Behavior : MonoBehaviour
 {
-    [Header("Время ожидания")]
+    [Header("Настройки ожидания и осмотра")]
     public float investigateWait = 5f;
-
-    [Header("Осмотр вокруг")]
     public float lookAroundTime = 5f;
     public float lookSpeed = 90f;
-    public float lookAngle = 90f;
+
+    [Header("Скорости движения")]
+    public float patrolSpeed = 3f;
+    public float fleeSpeed = 8f;
+
+    [Header("Убежище")]
+    public Transform fleePoint;
+
+    [Header("Побег")]
+    public float freezeTime = 0.5f;          // замереть
+    public float rotateToPlayerTime = 0.4f;  // плавно повернуться к игроку
+    public float rotateToFleeTime = 0.4f;    // повернуться к точке побега
 
     private AI_Navigation nav;
     private AI_Vision vision;
     private AI_Hearing hearing;
     private Animator animator;
 
+    private float stateTimer = 0f;
+    private Transform player;
+    private Vector3 noisePosition;
+
+    private bool playerVisible = false;
+    private bool isLookingAround = false;
+    private float waitTimer = 0f;
+    private float lookAroundTimer = 0f;
+
+    private enum FleePhase { None, Freeze, RotateToPlayer, RotateToFlee, Run }
+    private FleePhase fleePhase = FleePhase.None;
+
     private enum State { Patrol, Investigate, Wait, Flee }
     private State currentState = State.Patrol;
 
-    private float waitTimer;
-    private bool playerVisible = false;
-    private Vector3 noisePosition;
-
-    private bool isLookingAround = false;
-    private float lookTimer = 0f;
-    private float baseYRotation;
-    private float lookAroundTimer = 0f;
-
-    public Transform lookTarget; // Укажи в инспекторе или создавай в коде
-    public OverrideTransform overrideTransform; // ← сюда укажешь компонент
-    
-    [Header("Убежище")]
-    public Transform fleePoint; // точка, куда убегаем при обнаружении игрока
+    [Header("Менеджер изменения цвета при побеге")]
+    public EscapeColorChanger escapeManager;
 
     void Awake()
     {
@@ -45,7 +53,8 @@ public class AI_Behavior : MonoBehaviour
 
     void Start()
     {
-        nav.GoToNextPoint(); // сразу к первой точке патруля
+        nav.speed = patrolSpeed;
+        nav.GoToNextPoint();
     }
 
     void Update()
@@ -61,9 +70,11 @@ public class AI_Behavior : MonoBehaviour
         }
     }
 
-    // ---------------- Патруль ----------------
+    // ---------------- ПАТРУЛЬ ----------------
     private void PatrolUpdate()
     {
+        nav.speed = patrolSpeed;
+
         if (playerVisible)
         {
             StartFlee();
@@ -71,48 +82,36 @@ public class AI_Behavior : MonoBehaviour
         }
 
         if (nav.ReachedDestination())
-        {
-            currentState = State.Wait;
-            waitTimer = 0f;
-            StartLookAround();
-        }
-        ResetLook();
+            EnterWaitPhase();
     }
 
-    // ---------------- Исследование (шум/объект) ----------------
+    // ---------------- ИССЛЕДОВАНИЕ ----------------
     private void InvestigateUpdate()
     {
+        nav.speed = patrolSpeed;
+
         if (playerVisible)
         {
             StartFlee();
             return;
         }
+
+        nav.MoveTo(noisePosition);
 
         if (nav.ReachedDestination(0.5f))
-        {
-            currentState = State.Wait;
-            waitTimer = 0f;
-            StartLookAround();
-        }
+            EnterWaitPhase();
     }
 
-    // ---------------- Ожидание / осмотр ----------------
+    // ---------------- ОЖИДАНИЕ ----------------
     private void WaitUpdate()
     {
-        if (playerVisible)
-        {
-            StartFlee();
-            return;
-        }
-
         waitTimer += Time.deltaTime;
 
         if (isLookingAround)
         {
-            LookAround();
             lookAroundTimer += Time.deltaTime;
 
-            if (vision.CanSeePlayer())
+            if (playerVisible)
             {
                 StartFlee();
                 return;
@@ -122,7 +121,6 @@ public class AI_Behavior : MonoBehaviour
                 isLookingAround = false;
         }
 
-        // После ожидания возвращаемся к патрулю
         if (!isLookingAround && waitTimer >= investigateWait)
         {
             currentState = State.Patrol;
@@ -130,30 +128,17 @@ public class AI_Behavior : MonoBehaviour
         }
     }
 
-    // ---------------- Убегание ----------------
+    public bool IsFrozen => currentState == State.Flee && fleePhase == FleePhase.Freeze;
+
+    // ---------------- ПОБЕГ ----------------
     private void FleeUpdate()
     {
-        if (fleePoint == null)
+        switch (fleePhase)
         {
-            // если точка не задана — возвращаемся к патрулю
-            currentState = State.Patrol;
-            nav.GoToNextPoint();
-            return;
-        }
-        
-        nav.MoveTo(fleePoint.position);
-        isLookingAround = false;
-        
-        if (nav.ReachedDestination(0.5f))
-        {
-            Debug.Log("вас раскрыли!");
-            // достигли убежища — вызвать событие и перейти к ожиданию/осмотру
-            
-            if (animator != null)
-                animator.SetTrigger("Wait");
-            currentState = State.Wait;
-            waitTimer = 0f;
-            StartLookAround();
+            case FleePhase.Freeze: FreezePhase(); break;
+            case FleePhase.RotateToPlayer: RotateToPlayerPhase(); break;
+            case FleePhase.RotateToFlee: RotateToFleePhase(); break;
+            case FleePhase.Run: RunPhase(); break;
         }
     }
 
@@ -169,96 +154,121 @@ public class AI_Behavior : MonoBehaviour
         }
     }
 
-    // ---------------- Переходы ----------------
-    private void StartFlee()
+    // ---------- ФАЗА ОЦЕПЕНЕНИЯ ----------
+    private void FreezePhase()
     {
-        currentState = State.Flee;
-        // убеждаемcя, что режим погони выключен
-        vision.SetChaseMode(false);
-        isLookingAround = false;
-        if (animator != null)
-            animator.SetTrigger("Flee");
-    }
+        nav.Stop();
+        animator.speed = 0f;
 
-    // ---------------- Осмотр ----------------
-    private void StartLookAround()
-    {
-        if (isLookingAround) return;
+        // Поворот к игроку во время замерзания
+        player = vision.GetPlayer();
+        if (player != null)
+            LookAtTarget(player.position);
 
-        isLookingAround = true;
-        lookTimer = 0f;
-        lookAroundTimer = 0f;
-        baseYRotation = transform.eulerAngles.y;
-        
-    }
-
-    private void LookAround()
-    {
-        lookTimer += Time.deltaTime * lookSpeed;
-        float angle = Mathf.Sin(lookTimer * Mathf.Deg2Rad) * lookAngle;
-        lookTarget.rotation = Quaternion.Euler(0, transform.eulerAngles.y + angle, 0);
-
-        if (lookAroundTimer >= lookAroundTime)
+        stateTimer -= Time.deltaTime;
+        if (stateTimer <= 0)
         {
-            isLookingAround = false;
-            ResetLook(); // вызываем сброс здесь
+            fleePhase = FleePhase.RotateToPlayer;
+            stateTimer = rotateToPlayerTime;
+            animator.speed = 1f;
         }
     }
 
+    // ---------- ПОВОРОТ К ИГРОКУ ----------
+    private void RotateToPlayerPhase()
+    {
+        player = vision.GetPlayer();
+        if (player != null)
+            LookAtTarget(player.position);
 
-    public bool IsLookingAround() => isLookingAround;
+        stateTimer -= Time.deltaTime;
+        if (stateTimer <= 0)
+        {
+            fleePhase = FleePhase.RotateToFlee;
+            stateTimer = rotateToFleeTime;
+        }
+    }
 
+    // ---------- ПОВОРОТ К ТОЧКЕ ПОБЕГА ----------
+    private void RotateToFleePhase()
+    {
+        if (fleePoint != null)
+            LookAtTarget(fleePoint.position);
+
+        stateTimer -= Time.deltaTime;
+        if (stateTimer <= 0)
+            fleePhase = FleePhase.Run;
+    }
+
+    // ---------- ПОБЕГ ----------
+    private void RunPhase()
+    {
+        nav.Resume();
+        nav.speed = fleeSpeed;
+
+        if (fleePoint != null)
+            nav.MoveTo(fleePoint.position);
+
+        if (nav.ReachedDestination(0.5f))
+        {
+            if (escapeManager != null)
+                escapeManager.ChangeColor();
+            EnterWaitPhase();
+        }       
+    }
+
+    // ---------------- ПЛАВНЫЙ ПОВОРОТ ----------------
+    private void LookAtTarget(Vector3 target)
+    {
+        Vector3 dir = (target - transform.position).normalized;
+        dir.y = 0f;
+        if (dir == Vector3.zero) return;
+
+        Quaternion targetRot = Quaternion.LookRotation(dir);
+        transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, Time.deltaTime * 7f);
+    }
+
+    // ---------------- ЗАПУСК ПОБЕГА ----------------
+    private void StartFlee()
+    {
+        currentState = State.Flee;
+        isLookingAround = false;
+
+        fleePhase = FleePhase.Freeze;
+        stateTimer = freezeTime;
+        animator.speed = 0f;
+        nav.Stop();
+    }
+
+    // ---------------- ОСМОТР ----------------
+    private void EnterWaitPhase()
+    {
+        currentState = State.Wait;
+        waitTimer = 0f;
+        StartLookAround();
+        fleePhase = FleePhase.None;
+    }
+
+    private void StartLookAround()
+    {
+        isLookingAround = true;
+        lookAroundTimer = 0f;
+    }
+
+    // ---------------- АНИМАЦИИ ----------------
     public string GetCurrentStateName()
     {
+        if (currentState == State.Flee)
+        {
+            if (fleePhase == FleePhase.Freeze) return "Freeze";
+            if (fleePhase == FleePhase.RotateToPlayer) return "Turn";
+            if (fleePhase == FleePhase.RotateToFlee) return "Turn";
+            if (fleePhase == FleePhase.Run) return "Run";
+        }
+
         if (currentState == State.Wait && isLookingAround)
-            return "LookAround"; // <-- новое состояние для AnimationManager
+            return "LookAround";
+
         return currentState.ToString();
-    }
-    private void ResetLook()
-    {
-        if (lookTarget == null || overrideTransform == null)
-            return;
-
-        // Отключаем временно влияние Rig
-        overrideTransform.weight = 0f;
-
-        // Через 0.1 секунды возвращаем вес обратно
-        StartCoroutine(RestoreRigWeight());
-        // Сбрасываем локальный поворот
-        lookTarget.localRotation = Quaternion.identity;
-    }
-
-    private System.Collections.IEnumerator RestoreRigWeight()
-    {
-        yield return new WaitForSeconds(0.1f);
-        overrideTransform.weight = 1f;
-    }
-
-    private void OnDrawGizmos()
-    {
-        if (!Application.isPlaying) 
-            return; 
-        Gizmos.color = currentState switch 
-        { 
-            State.Patrol => Color.blue, 
-            State.Investigate => Color.yellow, 
-            State.Wait => Color.white, 
-            State.Flee => Color.green, 
-            _ => Color.gray 
-        }; 
-        Gizmos.DrawSphere(transform.position + Vector3.up * 2f, 0.2f);
-        if (nav != null && nav.HasDestination()) 
-        { 
-            Vector3 dest = nav.GetDestination(); 
-            Gizmos.color = Color.red; 
-            Gizmos.DrawLine(transform.position, dest); 
-            Gizmos.DrawSphere(dest, 0.3f); 
-        } 
-        if (currentState == State.Investigate) 
-        { 
-            Gizmos.color = Color.magenta; 
-            Gizmos.DrawLine(transform.position, noisePosition); 
-            Gizmos.DrawSphere(noisePosition, 0.2f); 
-        } 
     }
 }

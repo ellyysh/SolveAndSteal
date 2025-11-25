@@ -128,7 +128,7 @@ Material:
     - _GlossMapScale: 1
     - _Glossiness: 0.5
     - _GlossyReflections: 1
-    - _Metallic: 0
+    - _Metallic: 0.702
     - _Mode: 0
     - _NormalStrength: 0.2
     - _OcclusionStrength: 1
@@ -137,7 +137,7 @@ Material:
     - _QueueOffset: 0
     - _ReceiveShadows: 1
     - _RimPower: 5
-    - _Smoothness: 0.5
+    - _Smoothness: 0.302
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
@@ -150,10 +150,10 @@ Material:
     - _ZWrite: 1
     - _ZWriteControl: 0
     m_Colors:
-    - _BaseColor: {r: 0.75294125, g: 0.75294125, b: 0.75294125, a: 1}
+    - _BaseColor: {r: 0.6901961, g: 0.8784314, b: 0.9019608, a: 1}
     - _BumpOffset: {r: 0, g: 0, b: 0, a: 0}
     - _BumpTiling: {r: 1, g: 1, b: 0, a: 0}
-    - _Color: {r: 0.75294125, g: 0.75294125, b: 0.75294125, a: 1}
+    - _Color: {r: 0.6901961, g: 0.8784314, b: 0.9019608, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _NormalOffset: {r: 0, g: 0, b: 0, a: 0}
     - _NormalTiling: {r: 1, g: 1, b: 0, a: 0}

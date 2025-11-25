@@ -14,10 +14,6 @@ public class EyeCamera : MonoBehaviour
     public float distractionRotateSpeed = 3f;
     [Tooltip("Layer name to set on a detected distraction object after validation. Leave empty to skip.")]
     public string distractionConsumedLayerName = "";
-    [Tooltip("If true, applies the new layer to the entire hierarchy of the distraction object.")]
-    public bool distractionChangeLayerRecursively = true;
-    [Tooltip("Change layer only on the specific hit collider's GameObject (recommended).")]
-    public bool distractionChangeOnlyHitCollider = true;
 
     [Header("Scan Settings")]
     public Transform[] scanPoints;
@@ -57,6 +53,9 @@ public class EyeCamera : MonoBehaviour
     public bool alarmOnDetect = true;
     [Tooltip("Seconds between reports to avoid spamming.")]
     public float alarmCooldown = 2f;
+
+    public SpotLightAlert lightAlert;
+    public MaterialAlert materialAlert;
 
     [Header("Detection Tuning")]
     [Tooltip("0 = detect every frame; >0 = seconds between visibility checks")]
@@ -105,20 +104,6 @@ public class EyeCamera : MonoBehaviour
             return true;
         }
         return false;
-    }
-
-    private void SetLayerOnTransform(Transform t, int layer, bool recursively)
-    {
-        if (t == null) return;
-        if (!recursively)
-        {
-            t.gameObject.layer = layer;
-            return;
-        }
-        foreach (var tr in t.GetComponentsInChildren<Transform>(true))
-        {
-            tr.gameObject.layer = layer;
-        }
     }
 
     private void RaisePlayerSighting(Vector3 targetPosition)
@@ -206,6 +191,7 @@ public class EyeCamera : MonoBehaviour
             }
         }
         UpdatePupilState();
+        UpdateAlertState();
 
         switch (state)
         {
@@ -231,18 +217,9 @@ public class EyeCamera : MonoBehaviour
             if (!string.IsNullOrEmpty(distractionConsumedLayerName))
             {
                 int newLayer = LayerMask.NameToLayer(distractionConsumedLayerName);
-                if (newLayer != -1)
+                if (newLayer != -1 && hitCol != null)
                 {
-                    // Always prefer changing only the encountered collider's GameObject
-                    if (hitCol != null)
-                    {
-                        hitCol.gameObject.layer = newLayer;
-                    }
-                    // If hitCol is somehow null, fall back to changing just the found transform (non-recursive)
-                    else
-                    {
-                        SetLayerOnTransform(found, newLayer, false);
-                    }
+                    hitCol.gameObject.layer = newLayer;
                 }
             }
             distractionTarget = found;
@@ -282,30 +259,36 @@ public class EyeCamera : MonoBehaviour
     // -----------------------------
     void DetectTarget()
     {
-        target = null;
+        bool targetFound = TryFindVisible(targetLayer, viewAngle * 0.5f, out Transform found, out Collider _);
 
-        if (TryFindVisible(targetLayer, viewAngle * 0.5f, out Transform found, out Collider _))
+        if (targetFound)
         {
             target = found;
             distractionTarget = null;
             state = State.Focus;
-            // Передаём позицию игрока всем ИИ для начала поиска
             RaisePlayerSighting(target.position);
             return;
         }
 
-        if (state == State.Focus)
+        // Target lost - handle state transition
+        if (target != null)
         {
-            if (searchPoints != null && searchPoints.Length > 0)
+            // We had a target, but now it's gone
+            target = null;
+
+            if (state == State.Focus)
             {
-                state = State.Search;
-                searchIndex = 0;
-                searchTimer = 0f;
-                strobeTimer = 0f;
-            }
-            else
-            {
-                state = State.Relax;
+                if (searchPoints != null && searchPoints.Length > 0)
+                {
+                    state = State.Search;
+                    searchIndex = 0;
+                    searchTimer = 0f;
+                    strobeTimer = 0f;
+                }
+                else
+                {
+                    state = State.Relax;
+                }
             }
         }
     }
@@ -357,11 +340,8 @@ public class EyeCamera : MonoBehaviour
         if (finished)
         {
             state = State.Relax;
-            return;
         }
     }
-
-    // Noise-based distraction removed by design (only visual distraction allowed once)
 
     // -----------------------------
     // FOCUS
@@ -418,6 +398,28 @@ public class EyeCamera : MonoBehaviour
             case State.Distract: pupilController.SetWide(); break;
             case State.Relax: pupilController.SetWide(); break;
         }
+    }
+
+    // -----------------------------
+    // ALERT STATE
+    // -----------------------------
+    void UpdateAlertState()
+    {
+        AlertState alertState = state switch
+        {
+            State.Scan => AlertState.Normal,
+            State.Relax => AlertState.Normal,
+            State.Distract => AlertState.Search,
+            State.Search => AlertState.Search,
+            State.Focus => AlertState.Alert,
+            _ => AlertState.Normal
+        };
+
+        if (lightAlert != null)
+            lightAlert.SetState(alertState);
+
+        if (materialAlert != null)
+            materialAlert.SetState(alertState);
     }
 
     // -----------------------------
