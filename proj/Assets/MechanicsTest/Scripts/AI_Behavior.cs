@@ -222,11 +222,6 @@ public class AI_Behavior : MonoBehaviour
                     bool pathPending = agent != null && agent.pathPending;
                     float remainingDistance = agent != null ? agent.remainingDistance : 0f;
                     bool isStopped = agent != null && agent.isStopped;
-                    
-                    Debug.Log($"[AI_Behavior] Следую за игроком. Расстояние: {distance:F2}, " +
-                             $"Позиция игрока: {playerWorldPos}, Моя позиция: {transform.position}, " +
-                             $"В области интереса: {playerStillInInterest}, Цель навигации: {nav.GetDestination()}, " +
-                             $"hasPath: {hasPath}, pathPending: {pathPending}, remainingDistance: {remainingDistance:F2}, isStopped: {isStopped}");
                 }
                 
                 // Если игрок ушел из области интереса - переходим в Wait только после небольшой задержки

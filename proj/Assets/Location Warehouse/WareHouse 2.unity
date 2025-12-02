@@ -15906,11 +15906,11 @@ MonoBehaviour:
   headBoneOffset: {x: 0, y: 0.2, z: 0}
   smoothFollow: 0
   followSpeed: 5
-  patrolColor: {r: 0.6301887, g: 0.6301887, b: 0.6301887, a: 1}
-  investigateColor: {r: 0.81960785, g: 0.4851712, b: 0.19607843, a: 1}
-  waitColor: {r: 0.75686276, g: 0.7215136, b: 0.19999997, a: 1}
-  fleeColor: {r: 0.7509433, g: 0.20828049, b: 0.20828049, a: 1}
-  freezeColor: {r: 0, g: 0.6021297, b: 1, a: 1}
+  patrolColor: {r: 0.43, g: 0.43, b: 0.43, a: 1}
+  investigateColor: {r: 0.65, g: 0.3856459, b: 0.15550238, a: 1}
+  waitColor: {r: 0.56, g: 0.533886, b: 0.14797926, a: 1}
+  fleeColor: {r: 0.55, g: 0.15261778, b: 0.15261778, a: 1}
+  freezeColor: {r: 0, g: 0.42274532, b: 0.7, a: 1}
 --- !u!1001 &1387530333
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -22017,7 +22017,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8806329115733545878, guid: 77e7c27b2c5525e4aa8cc9f99d654486, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -8.82
+      value: -11.650001
       objectReference: {fileID: 0}
     - target: {fileID: 8806329115733545878, guid: 77e7c27b2c5525e4aa8cc9f99d654486, type: 3}
       propertyPath: m_LocalRotation.w
