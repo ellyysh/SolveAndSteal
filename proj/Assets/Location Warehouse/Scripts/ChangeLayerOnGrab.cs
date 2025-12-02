@@ -4,7 +4,7 @@ using UnityEngine.XR.Interaction.Toolkit.Interactables;
 
 public class ChangeLayerOnGrab : MonoBehaviour
 {
-    [Header("пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅ VR-пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ")]
+    [Header("Новый слой, когда VR-игрок взаимодействует")]
     public string activeLayerName = "DistractObject";
 
     private void Awake()

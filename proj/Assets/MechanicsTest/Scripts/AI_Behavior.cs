@@ -9,7 +9,9 @@ public class AI_Behavior : MonoBehaviour
     public float lookSpeed = 90f;
 
     [Header("Скорости движения")]
+    [Tooltip("Скорость патрулирования и исследования")]
     public float patrolSpeed = 3f;
+    [Tooltip("Скорость побега")]
     public float fleeSpeed = 8f;
 
     [Header("Убежище")]
@@ -28,8 +30,10 @@ public class AI_Behavior : MonoBehaviour
     private float stateTimer = 0f;
     private Transform player;
     private Vector3 noisePosition;
-
+    private Transform interestTarget;
+    private bool isInvestigatingPlayer = false;
     private bool playerVisible = false;
+    private bool playerInInterestArea = false;
     private bool isLookingAround = false;
     private float waitTimer = 0f;
     private float lookAroundTimer = 0f;
@@ -60,6 +64,95 @@ public class AI_Behavior : MonoBehaviour
     void Update()
     {
         playerVisible = vision.CanSeePlayer();
+        playerInInterestArea = vision.IsPlayerInInterestArea();
+
+        // Приоритет: игрок в области интереса (подойти) > обычное зрение (побег) > обычные объекты интереса
+        if (currentState != State.Flee)
+        {
+            // ЛОГИКА ДЛЯ ИГРОКА В ОБЛАСТИ ИНТЕРЕСА (отдельно от обычных объектов)
+            // ПРИОРИТЕТ: сначала подойти к игроку в большой области, чтобы проверить его в маленькой
+            if (playerInInterestArea)
+            {
+                // Если игрок в области интереса - исследуем его (даже если исследуем обычный объект)
+                player = vision.GetPlayer();
+                if (player != null)
+                {
+                    // Получаем мировую позицию игрока
+                    Vector3 playerWorldPos = player.position;
+                    
+                    // Переключаемся на игрока, если еще не исследуем его
+                    if (!isInvestigatingPlayer)
+                    {
+                        isInvestigatingPlayer = true;
+                        interestTarget = null; // Сбрасываем обычный объект интереса
+                        noisePosition = playerWorldPos;
+                        currentState = State.Investigate;
+                        nav.Resume(); // Убеждаемся, что навигация активна
+                        nav.MoveTo(noisePosition);
+                        waitTimer = 0f;
+                        
+                        Debug.Log($"[AI_Behavior] Начинаю исследование игрока. Позиция: {playerWorldPos}, Расстояние: {Vector3.Distance(transform.position, playerWorldPos):F2}, Состояние: {currentState}");
+                    }
+                    // Если уже исследуем игрока, просто обновляем позицию (в InvestigateUpdate)
+                }
+            }
+            else
+            {
+                // Если игрок больше не в области интереса - НЕ сбрасываем сразу, даем время дойти
+                // Сброс произойдет в InvestigateUpdate, если игрок действительно ушел
+            }
+
+            // Если игрок в обычной области видимости И мы НЕ исследуем его (не подходим) - побег
+            // Если мы исследуем игрока, проверка обычного зрения будет в InvestigateUpdate
+            if (playerVisible && !isInvestigatingPlayer)
+            {
+                StartFlee();
+                return;
+            }
+
+            // ЛОГИКА ДЛЯ ОБЫЧНЫХ ОБЪЕКТОВ ИНТЕРЕСА (отдельно от игрока)
+            // Проверяем только если НЕ исследуем игрока
+            if (!isInvestigatingPlayer)
+            {
+                if (vision.TryGetInterestTarget(out Transform interest))
+                {
+                    // Если нашли объект интереса
+                    bool shouldSwitch = false;
+                    
+                    // Переключаемся если:
+                    // 1. У нас нет текущего объекта интереса
+                    // 2. Найденный объект отличается от текущего
+                    // 3. Мы не в состоянии Investigate
+                    if (interestTarget == null || interestTarget != interest || currentState != State.Investigate)
+                    {
+                        shouldSwitch = true;
+                    }
+                    
+                    if (shouldSwitch)
+                    {
+                        interestTarget = interest;
+                        noisePosition = interest.position;
+                        currentState = State.Investigate;
+                        nav.Resume(); // Убеждаемся, что навигация активна
+                        nav.MoveTo(noisePosition);
+                        waitTimer = 0f;
+                    }
+                }
+                else
+                {
+                    // Если объект интереса не найден, но мы его исследовали - сбрасываем
+                    if (interestTarget != null)
+                    {
+                        interestTarget = null;
+                        // Если мы в состоянии Investigate из-за объекта, переходим в Wait
+                        if (currentState == State.Investigate)
+                        {
+                            EnterWaitPhase();
+                        }
+                    }
+                }
+            }
+        }
 
         switch (currentState)
         {
@@ -73,9 +166,11 @@ public class AI_Behavior : MonoBehaviour
     // ---------------- ПАТРУЛЬ ----------------
     private void PatrolUpdate()
     {
+        nav.Resume(); // Убеждаемся, что навигация активна
         nav.speed = patrolSpeed;
 
-        if (playerVisible)
+        // Если игрок в обычном зрении и мы не исследуем его - побег
+        if (playerVisible && !isInvestigatingPlayer)
         {
             StartFlee();
             return;
@@ -89,17 +184,102 @@ public class AI_Behavior : MonoBehaviour
     private void InvestigateUpdate()
     {
         nav.speed = patrolSpeed;
+        nav.Resume(); // Убеждаемся, что навигация активна
 
-        if (playerVisible)
+        // ЛОГИКА ДЛЯ ИГРОКА (отдельно от обычных объектов)
+        if (isInvestigatingPlayer)
         {
-            StartFlee();
-            return;
+            // Обновляем проверку области интереса заново
+            bool playerStillInInterest = vision.IsPlayerInInterestArea();
+            bool playerNowVisible = vision.CanSeePlayer(); // Проверяем обычное зрение
+            player = vision.GetPlayer();
+            
+            // Если подошли близко и видим игрока в обычном зрении - побег!
+            if (playerNowVisible)
+            {
+                isInvestigatingPlayer = false;
+                StartFlee();
+                return;
+            }
+            
+            if (player != null)
+            {
+                // Обновляем позицию игрока в реальном времени (используем мировую позицию)
+                Vector3 playerWorldPos = player.position;
+                noisePosition = playerWorldPos;
+                
+                // ВАЖНО: всегда обновляем навигацию, даже если игрок на границе области
+                nav.Resume(); // Убеждаемся, что навигация активна
+                nav.MoveTo(noisePosition);
+                
+                float distance = Vector3.Distance(transform.position, playerWorldPos);
+                
+                // Отладка каждую секунду
+                if (Time.frameCount % 60 == 0)
+                {
+                    UnityEngine.AI.NavMeshAgent agent = GetComponent<UnityEngine.AI.NavMeshAgent>();
+                    bool hasPath = agent != null && agent.hasPath;
+                    bool pathPending = agent != null && agent.pathPending;
+                    float remainingDistance = agent != null ? agent.remainingDistance : 0f;
+                    bool isStopped = agent != null && agent.isStopped;
+                    
+                    Debug.Log($"[AI_Behavior] Следую за игроком. Расстояние: {distance:F2}, " +
+                             $"Позиция игрока: {playerWorldPos}, Моя позиция: {transform.position}, " +
+                             $"В области интереса: {playerStillInInterest}, Цель навигации: {nav.GetDestination()}, " +
+                             $"hasPath: {hasPath}, pathPending: {pathPending}, remainingDistance: {remainingDistance:F2}, isStopped: {isStopped}");
+                }
+                
+                // Если игрок ушел из области интереса - переходим в Wait только после небольшой задержки
+                if (!playerStillInInterest)
+                {
+                    // Даем время дойти до последней известной позиции
+                    if (nav.ReachedDestination(1.0f)) // Увеличиваем порог для проверки
+                    {
+                        isInvestigatingPlayer = false;
+                        EnterWaitPhase();
+                    }
+                }
+                // НЕ переходим в Wait при достижении цели - продолжаем следовать за игроком
+                // ИИ должен продолжать следовать за игроком, пока он в области интереса
+                // Когда подойдем близко и увидим в обычном зрении - убежим
+            }
+            else
+            {
+                // Игрок пропал - переходим в Wait
+                isInvestigatingPlayer = false;
+                EnterWaitPhase();
+            }
         }
-
-        nav.MoveTo(noisePosition);
-
-        if (nav.ReachedDestination(0.5f))
-            EnterWaitPhase();
+        // ЛОГИКА ДЛЯ ОБЫЧНЫХ ОБЪЕКТОВ ИНТЕРЕСА (отдельно от игрока)
+        else if (interestTarget != null)
+        {
+            // Проверяем, виден ли объект еще
+            if (vision.TryGetInterestTarget(out Transform interest) && interest == interestTarget)
+            {
+                // Обновляем позицию объекта
+                noisePosition = interestTarget.position;
+                nav.MoveTo(noisePosition);
+                
+                // Проверяем достижение цели
+                if (nav.ReachedDestination(0.5f))
+                {
+                    EnterWaitPhase();
+                }
+            }
+            else
+            {
+                // Объект пропал - переходим в Wait
+                interestTarget = null;
+                EnterWaitPhase();
+            }
+        }
+        else
+        {
+            // Если ни игрок, ни объект интереса не найдены - переходим в Wait
+            nav.MoveTo(noisePosition);
+            if (nav.ReachedDestination(0.5f))
+                EnterWaitPhase();
+        }
     }
 
     // ---------------- ОЖИДАНИЕ ----------------
@@ -233,6 +413,8 @@ public class AI_Behavior : MonoBehaviour
     {
         currentState = State.Flee;
         isLookingAround = false;
+        isInvestigatingPlayer = false;
+        interestTarget = null;
 
         fleePhase = FleePhase.Freeze;
         stateTimer = freezeTime;
@@ -247,6 +429,8 @@ public class AI_Behavior : MonoBehaviour
         waitTimer = 0f;
         StartLookAround();
         fleePhase = FleePhase.None;
+        isInvestigatingPlayer = false;
+        interestTarget = null;
     }
 
     private void StartLookAround()
