@@ -52,6 +52,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: BookRed
       objectReference: {fileID: 0}
+    - target: {fileID: 967016591553411399, guid: 667648ba453719e4683cbbab5e2b30c8, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 18
+      objectReference: {fileID: 0}
     - target: {fileID: 1615512466263677074, guid: 667648ba453719e4683cbbab5e2b30c8, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 

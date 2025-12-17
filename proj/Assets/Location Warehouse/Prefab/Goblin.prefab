@@ -76,6 +76,10 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 10
       objectReference: {fileID: 0}
+    - target: {fileID: -8391222552659086748, guid: 993672a36b7fed94e9353ceb36ddaa44, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: -8272593504222155511, guid: 993672a36b7fed94e9353ceb36ddaa44, type: 3}
       propertyPath: m_Layer
       value: 10
@@ -335,6 +339,11 @@ MonoBehaviour:
   obstacleMask:
     serializedVersion: 2
     m_Bits: 4416
+  interestRadius: 15
+  interestViewAngle: 120
+  interestLayer:
+    serializedVersion: 2
+    m_Bits: 0
   playerHead: {fileID: 0}
   headBone: {fileID: 4667203365789720839}
 --- !u!114 &2821900720336572350
@@ -358,6 +367,8 @@ MonoBehaviour:
   freezeTime: 1
   rotateToPlayerTime: 0.5
   rotateToFleeTime: 0.25
+  youLoseCanvas: {fileID: 0}
+  escapeManager: {fileID: 0}
 --- !u!114 &1350828973461199743
 MonoBehaviour:
   m_ObjectHideFlags: 0
