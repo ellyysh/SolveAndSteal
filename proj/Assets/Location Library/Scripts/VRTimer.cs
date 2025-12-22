@@ -10,10 +10,17 @@ public class VRTimer : MonoBehaviour
     
     private float currentTime;
     private bool isRunning = true;
-    
+
+    [Header("Проигрыш")]
+    public Canvas youLoseCanvas; // ИЗМЕНИЛ: теперь Canvas вместо GameObject
+
     void Start()
     {
         currentTime = startTime;
+
+        // Скрываем Canvas при старте
+        if (youLoseCanvas != null)
+            youLoseCanvas.gameObject.SetActive(false); // ИЗМЕНИЛ: для Canvas
     }
     
     void Update()
@@ -27,6 +34,21 @@ public class VRTimer : MonoBehaviour
             {
                 currentTime = 0;
                 isRunning = false;
+
+                Debug.Log($"Canvas назначен: {youLoseCanvas != null}");
+
+                if (youLoseCanvas != null)
+                {
+                    Debug.Log($"Canvas активен до: {youLoseCanvas.gameObject.activeSelf}");
+                    youLoseCanvas.gameObject.SetActive(true);
+                    Debug.Log($"Canvas активен после: {youLoseCanvas.gameObject.activeSelf}");
+
+                    // Сразу проверяем - виден ли Canvas на сцене?
+                    if (youLoseCanvas.gameObject.activeInHierarchy)
+                        Debug.Log("Canvas ВИДЕН В ИЕРАРХИИ!");
+                    else
+                        Debug.Log("Canvas НЕ ВИДЕН в иерархии!");
+                }
             }
         }
         else
