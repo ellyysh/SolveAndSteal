@@ -12785,7 +12785,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 9d95ec4a3b6f57f41b424bc89d765aeb, type: 2}
+  - {fileID: 2100000, guid: 0d4d5d379287cbb45aeeff9d358a9ee0, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -32633,7 +32633,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 82df753f34696a240a5544d8b14f993d, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 3.4499998
+      value: 2.7
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 82df753f34696a240a5544d8b14f993d, type: 3}
       propertyPath: m_LocalPosition.y
@@ -32641,7 +32641,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 82df753f34696a240a5544d8b14f993d, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 14.25
+      value: 14.53
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 82df753f34696a240a5544d8b14f993d, type: 3}
       propertyPath: m_LocalRotation.w
@@ -32690,6 +32690,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 82df753f34696a240a5544d8b14f993d, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1311613736}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 82df753f34696a240a5544d8b14f993d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1311613740}
   m_SourcePrefab: {fileID: 100100000, guid: 82df753f34696a240a5544d8b14f993d, type: 3}
 --- !u!1 &1311613735 stripped
 GameObject:
@@ -32718,6 +32721,21 @@ MeshCollider:
   m_Convex: 1
   m_CookingOptions: 30
   m_Mesh: {fileID: -2124705421725058983, guid: 82df753f34696a240a5544d8b14f993d, type: 3}
+--- !u!114 &1311613740
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1311613735}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7c55d7118ab6a6642923a806a0f935eb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LiftUpDown
+  height: 4
+  speed: 2
+  pauseTime: 1
 --- !u!1001 &1312958273
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -38668,7 +38686,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 82df753f34696a240a5544d8b14f993d, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 19.95
+      value: 19.91
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 82df753f34696a240a5544d8b14f993d, type: 3}
       propertyPath: m_LocalPosition.y
@@ -38725,6 +38743,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 82df753f34696a240a5544d8b14f993d, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2109048260}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 82df753f34696a240a5544d8b14f993d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2109048264}
   m_SourcePrefab: {fileID: 100100000, guid: 82df753f34696a240a5544d8b14f993d, type: 3}
 --- !u!1 &1592776636
 GameObject:
@@ -39674,7 +39695,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRTimer
   timerText: {fileID: 505459878}
-  startTime: 5
+  startTime: 60
   countDown: 1
   youLoseCanvas: {fileID: 1841179958}
 --- !u!1001 &1629287808
@@ -50467,6 +50488,21 @@ MeshCollider:
   m_Convex: 1
   m_CookingOptions: 30
   m_Mesh: {fileID: -2124705421725058983, guid: 82df753f34696a240a5544d8b14f993d, type: 3}
+--- !u!114 &2109048264
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2109048256}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7c55d7118ab6a6642923a806a0f935eb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LiftUpDown
+  height: 4
+  speed: 2
+  pauseTime: 1
 --- !u!1 &2109563151
 GameObject:
   m_ObjectHideFlags: 0
@@ -51186,7 +51222,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5798764934472498980, guid: 0f56fcce2c4fc5743833573cd05746af, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 17.65
+      value: 4.62
       objectReference: {fileID: 0}
     - target: {fileID: 5798764934472498980, guid: 0f56fcce2c4fc5743833573cd05746af, type: 3}
       propertyPath: m_LocalPosition.y
@@ -51194,7 +51230,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5798764934472498980, guid: 0f56fcce2c4fc5743833573cd05746af, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 14.89
+      value: 14.26
       objectReference: {fileID: 0}
     - target: {fileID: 5798764934472498980, guid: 0f56fcce2c4fc5743833573cd05746af, type: 3}
       propertyPath: m_LocalRotation.w

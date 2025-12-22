@@ -333,9 +333,6 @@ public class AI_Behavior : MonoBehaviour
     {
         nav.MoveTo(fleePoint.position);
         
-        // ВРЕМЕННО: показываем дистанцию каждый кадр
-        float distance = Vector3.Distance(transform.position, fleePoint.position);
-        Debug.Log($"Бегу к точке. Дистанция: {distance:F2}. ReachedDestination: {nav.ReachedDestination(0.5f)}");
     }
 
     if (nav.ReachedDestination(0.5f))

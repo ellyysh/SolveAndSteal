@@ -3,30 +3,30 @@ using TMPro;
 
 public class VRTimer : MonoBehaviour
 {
-    [Header("ÐÐ°ÑÑ‚Ñ€Ð¾Ð¹ÐºÐ¸")]
-    public TextMeshProUGUI timerText; // Ð¢ÐµÐºÑÑ‚ Ð´Ð»Ñ Ð¾Ñ‚Ð¾Ð±Ñ€Ð°Ð¶ÐµÐ½Ð¸Ñ Ð²Ñ€ÐµÐ¼ÐµÐ½Ð¸
-    public float startTime = 60f; // ÐÐ°Ñ‡Ð°Ð»ÑŒÐ½Ð¾Ðµ Ð²Ñ€ÐµÐ¼Ñ Ð² ÑÐµÐºÑƒÐ½Ð´Ð°Ñ…
-    public bool countDown = true; // true = Ð¾Ð±Ñ€Ð°Ñ‚Ð½Ñ‹Ð¹ Ð¾Ñ‚ÑÑ‡ÐµÑ‚, false = Ð¿Ñ€ÑÐ¼Ð¾Ð¹
-    
+    [Header("Íàñòðîéêè")]
+    public TextMeshProUGUI timerText; // Òåêñò äëÿ îòîáðàæåíèÿ âðåìåíè
+    public float startTime = 60f; // Íà÷àëüíîå âðåìÿ â ñåêóíäàõ
+    public bool countDown = true; // true = îáðàòíûé îòñ÷åò, false = ïðÿìîé
+
     private float currentTime;
     private bool isRunning = true;
 
-    [Header("ÐŸÑ€Ð¾Ð¸Ð³Ñ€Ñ‹Ñˆ")]
-    public Canvas youLoseCanvas; // Ð˜Ð—ÐœÐ•ÐÐ˜Ð›: Ñ‚ÐµÐ¿ÐµÑ€ÑŒ Canvas Ð²Ð¼ÐµÑÑ‚Ð¾ GameObject
+    [Header("Ïðîèãðûø")]
+    public Canvas youLoseCanvas; // ÈÇÌÅÍÈË: òåïåðü Canvas âìåñòî GameObject
 
     void Start()
     {
         currentTime = startTime;
 
-        // Ð¡ÐºÑ€Ñ‹Ð²Ð°ÐµÐ¼ Canvas Ð¿Ñ€Ð¸ ÑÑ‚Ð°Ñ€Ñ‚Ðµ
+        // Ñêðûâàåì Canvas ïðè ñòàðòå
         if (youLoseCanvas != null)
-            youLoseCanvas.gameObject.SetActive(false); // Ð˜Ð—ÐœÐ•ÐÐ˜Ð›: Ð´Ð»Ñ Canvas
+            youLoseCanvas.gameObject.SetActive(false); // ÈÇÌÅÍÈË: äëÿ Canvas
     }
-    
+
     void Update()
     {
         if (!isRunning) return;
-        
+
         if (countDown)
         {
             currentTime -= Time.deltaTime;
@@ -35,19 +35,19 @@ public class VRTimer : MonoBehaviour
                 currentTime = 0;
                 isRunning = false;
 
-                Debug.Log($"Canvas Ð½Ð°Ð·Ð½Ð°Ñ‡ÐµÐ½: {youLoseCanvas != null}");
+                Debug.Log($"Canvas íàçíà÷åí: {youLoseCanvas != null}");
 
                 if (youLoseCanvas != null)
                 {
-                    Debug.Log($"Canvas Ð°ÐºÑ‚Ð¸Ð²ÐµÐ½ Ð´Ð¾: {youLoseCanvas.gameObject.activeSelf}");
+                    Debug.Log($"Canvas àêòèâåí äî: {youLoseCanvas.gameObject.activeSelf}");
                     youLoseCanvas.gameObject.SetActive(true);
-                    Debug.Log($"Canvas Ð°ÐºÑ‚Ð¸Ð²ÐµÐ½ Ð¿Ð¾ÑÐ»Ðµ: {youLoseCanvas.gameObject.activeSelf}");
+                    Debug.Log($"Canvas àêòèâåí ïîñëå: {youLoseCanvas.gameObject.activeSelf}");
 
-                    // Ð¡Ñ€Ð°Ð·Ñƒ Ð¿Ñ€Ð¾Ð²ÐµÑ€ÑÐµÐ¼ - Ð²Ð¸Ð´ÐµÐ½ Ð»Ð¸ Canvas Ð½Ð° ÑÑ†ÐµÐ½Ðµ?
+                    // Ñðàçó ïðîâåðÿåì - âèäåí ëè Canvas íà ñöåíå?
                     if (youLoseCanvas.gameObject.activeInHierarchy)
-                        Debug.Log("Canvas Ð’Ð˜Ð”Ð•Ð Ð’ Ð˜Ð•Ð ÐÐ Ð¥Ð˜Ð˜!");
+                        Debug.Log("Canvas ÂÈÄÅÍ Â ÈÅÐÀÐÕÈÈ!");
                     else
-                        Debug.Log("Canvas ÐÐ• Ð’Ð˜Ð”Ð•Ð Ð² Ð¸ÐµÑ€Ð°Ñ€Ñ…Ð¸Ð¸!");
+                        Debug.Log("Canvas ÍÅ ÂÈÄÅÍ â èåðàðõèè!");
                 }
             }
         }
@@ -55,20 +55,20 @@ public class VRTimer : MonoBehaviour
         {
             currentTime += Time.deltaTime;
         }
-        
+
         UpdateText();
     }
-    
+
     void UpdateText()
     {
         if (timerText == null) return;
-        
+
         int minutes = Mathf.FloorToInt(currentTime / 60);
         int seconds = Mathf.FloorToInt(currentTime % 60);
         timerText.text = string.Format("{0:00}:{1:00}", minutes, seconds);
     }
-    
-    // ÐŸÑƒÐ±Ð»Ð¸Ñ‡Ð½Ñ‹Ðµ Ð¼ÐµÑ‚Ð¾Ð´Ñ‹ Ð´Ð»Ñ ÑƒÐ¿Ñ€Ð°Ð²Ð»ÐµÐ½Ð¸Ñ
+
+    // Ïóáëè÷íûå ìåòîäû äëÿ óïðàâëåíèÿ
     public void StartTimer() => isRunning = true;
     public void StopTimer() => isRunning = false;
     public void ResetTimer() { currentTime = startTime; UpdateText(); }
