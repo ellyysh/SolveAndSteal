@@ -1,75 +1,88 @@
-using UnityEngine;
 using TMPro;
+using UnityEngine;
 
 public class VRTimer : MonoBehaviour
 {
-    [Header("Настройки")]
-    public TextMeshProUGUI timerText; // Текст для отображения времени
-    public float startTime = 60f; // Начальное время в секундах
-    public bool countDown = true; // true = обратный отсчет, false = прямой
+    public TextMeshProUGUI timerText;
+    public float startTime = 60f;
+    public bool countDown = true;
 
-    private float currentTime;
-    private bool isRunning = true;
+    public Canvas youLoseCanvas;
+    public GameOverManager gameOverManager;
 
-    [Header("Проигрыш")]
-    public Canvas youLoseCanvas; // ИЗМЕНИЛ: теперь Canvas вместо GameObject
+    private float _currentTime;
+    private bool _isRunning = true;
+    private bool _gameOver;
 
-    void Start()
+    private void Start()
     {
-        currentTime = startTime;
+        _currentTime = startTime;
 
-        // Скрываем Canvas при старте
         if (youLoseCanvas != null)
-            youLoseCanvas.gameObject.SetActive(false); // ИЗМЕНИЛ: для Canvas
+            youLoseCanvas.gameObject.SetActive(false);
+
+        UpdateText();
     }
 
-    void Update()
+    private void Update()
     {
-        if (!isRunning) return;
+        if (!_isRunning || _gameOver)
+            return;
 
         if (countDown)
         {
-            currentTime -= Time.deltaTime;
-            if (currentTime <= 0)
+            _currentTime -= Time.deltaTime;
+            if (_currentTime <= 0f)
             {
-                currentTime = 0;
-                isRunning = false;
-
-                Debug.Log($"Canvas назначен: {youLoseCanvas != null}");
-
-                if (youLoseCanvas != null)
-                {
-                    Debug.Log($"Canvas активен до: {youLoseCanvas.gameObject.activeSelf}");
-                    youLoseCanvas.gameObject.SetActive(true);
-                    Debug.Log($"Canvas активен после: {youLoseCanvas.gameObject.activeSelf}");
-
-                    // Сразу проверяем - виден ли Canvas на сцене?
-                    if (youLoseCanvas.gameObject.activeInHierarchy)
-                        Debug.Log("Canvas ВИДЕН В ИЕРАРХИИ!");
-                    else
-                        Debug.Log("Canvas НЕ ВИДЕН в иерархии!");
-                }
+                _currentTime = 0f;
+                OnGameOver();
             }
         }
         else
         {
-            currentTime += Time.deltaTime;
+            _currentTime += Time.deltaTime;
         }
 
         UpdateText();
     }
 
-    void UpdateText()
+    private void OnGameOver()
+    {
+        if (_gameOver)
+            return;
+
+        _gameOver = true;
+        _isRunning = false;
+
+        // РўСЂРµР±СѓРµРј РјРµРЅРµРґР¶РµСЂ, РєРѕС‚РѕСЂС‹Р№ РјРѕР¶РЅРѕ РїРµСЂРµС‚Р°С‰РёС‚СЊ РІ РёРЅСЃРїРµРєС‚РѕСЂРµ
+        if (gameOverManager == null)
+        {
+            Debug.LogWarning($"[{nameof(VRTimer)}] РќРµ РЅР°Р·РЅР°С‡РµРЅ GameOverManager. РџРµСЂРµС‚Р°С‰Рё РѕР±СЉРµРєС‚ СЃ GameOverManager РІ РїРѕР»Рµ gameOverManager.", this);
+            return;
+        }
+
+        gameOverManager.TriggerGameOver(youLoseCanvas);
+    }
+
+    private void UpdateText()
     {
         if (timerText == null) return;
 
-        int minutes = Mathf.FloorToInt(currentTime / 60);
-        int seconds = Mathf.FloorToInt(currentTime % 60);
+        int minutes = Mathf.FloorToInt(_currentTime / 60f);
+        int seconds = Mathf.FloorToInt(_currentTime % 60f);
         timerText.text = string.Format("{0:00}:{1:00}", minutes, seconds);
     }
 
-    // Публичные методы для управления
-    public void StartTimer() => isRunning = true;
-    public void StopTimer() => isRunning = false;
-    public void ResetTimer() { currentTime = startTime; UpdateText(); }
+    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+    public void StartTimer() => _isRunning = true;
+    public void StopTimer() => _isRunning = false;
+    public void ResetTimer()
+    {
+        _currentTime = startTime;
+        _gameOver = false;
+        UpdateText();
+
+        if (youLoseCanvas != null)
+            youLoseCanvas.gameObject.SetActive(false);
+    }
 }

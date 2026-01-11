@@ -19,7 +19,7 @@ GameObject:
   - component: {fileID: 305617871733839458}
   - component: {fileID: 5165156519047205629}
   - component: {fileID: 638851416386758004}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cube (1)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -273,6 +273,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: -9152072550234769289, guid: b998522ef6c17344ab53977a5a7c4cf7, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: b998522ef6c17344ab53977a5a7c4cf7, type: 3}
       propertyPath: m_LocalScale.x
       value: 0.49999997
@@ -329,13 +333,77 @@ PrefabInstance:
       propertyPath: m_ConstrainProportionsScale
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: -8236076569268209247, guid: b998522ef6c17344ab53977a5a7c4cf7, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: -7978047563147080623, guid: b998522ef6c17344ab53977a5a7c4cf7, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: -6891678129724857726, guid: b998522ef6c17344ab53977a5a7c4cf7, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: -6439504004678829076, guid: b998522ef6c17344ab53977a5a7c4cf7, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: -5770634479784780433, guid: b998522ef6c17344ab53977a5a7c4cf7, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: -5605079258015020133, guid: b998522ef6c17344ab53977a5a7c4cf7, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
     - target: {fileID: -4683669308469848369, guid: b998522ef6c17344ab53977a5a7c4cf7, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: 0da4f0ad146d8714d9cdd9899f29c447, type: 2}
+    - target: {fileID: -586140027045411568, guid: b998522ef6c17344ab53977a5a7c4cf7, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: b998522ef6c17344ab53977a5a7c4cf7, type: 3}
       propertyPath: m_Name
       value: "\u0448\u043A\u0430\u0444 1"
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: b998522ef6c17344ab53977a5a7c4cf7, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 989719553681369511, guid: b998522ef6c17344ab53977a5a7c4cf7, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 2585762914804229253, guid: b998522ef6c17344ab53977a5a7c4cf7, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 3570284138547847183, guid: b998522ef6c17344ab53977a5a7c4cf7, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 4383353755243004527, guid: b998522ef6c17344ab53977a5a7c4cf7, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 4881731283306680111, guid: b998522ef6c17344ab53977a5a7c4cf7, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 5948711139713993354, guid: b998522ef6c17344ab53977a5a7c4cf7, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8092463051233230547, guid: b998522ef6c17344ab53977a5a7c4cf7, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8915937802502502146, guid: b998522ef6c17344ab53977a5a7c4cf7, type: 3}
+      propertyPath: m_Layer
+      value: 6
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects:
