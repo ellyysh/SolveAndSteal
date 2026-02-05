@@ -2,15 +2,11 @@ using UnityEngine;
 
 public class GpuInstancingEnabler : MonoBehaviour
 {
+    // Update is called once per frame
     private void Awake()
     {
-        MeshRenderer meshRenderer = GetComponent<MeshRenderer>();
-
-        // Если MeshRenderer отсутствует — просто игнорируем
-        if (meshRenderer == null)
-            return;
-
         MaterialPropertyBlock materialPropertyBlock = new MaterialPropertyBlock();
+        MeshRenderer meshRenderer = GetComponent<MeshRenderer>();
         meshRenderer.SetPropertyBlock(materialPropertyBlock);
     }
 }

@@ -9,16 +9,21 @@ public class AI_Behavior : MonoBehaviour
     public float lookSpeed = 90f;
 
     [Header("Скорости движения")]
+    [Tooltip("Скорость патрулирования и исследования")]
     public float patrolSpeed = 3f;
+    [Tooltip("Скорость побега")]
     public float fleeSpeed = 8f;
 
     [Header("Убежище")]
     public Transform fleePoint;
 
     [Header("Побег")]
-    public float freezeTime = 0.5f;          // замереть
-    public float rotateToPlayerTime = 0.4f;  // плавно повернуться к игроку
-    public float rotateToFleeTime = 0.4f;    // повернуться к точке побега
+    public float freezeTime = 0.5f;          
+    public float rotateToPlayerTime = 0.4f;  
+    public float rotateToFleeTime = 0.4f;    
+
+    [Header("Проигрыш")]
+    public Canvas youLoseCanvas; // ИЗМЕНИЛ: теперь Canvas вместо GameObject
 
     private AI_Navigation nav;
     private AI_Vision vision;
@@ -28,8 +33,10 @@ public class AI_Behavior : MonoBehaviour
     private float stateTimer = 0f;
     private Transform player;
     private Vector3 noisePosition;
-
+    private Transform interestTarget;
+    private bool isInvestigatingPlayer = false;
     private bool playerVisible = false;
+    private bool playerInInterestArea = false;
     private bool isLookingAround = false;
     private float waitTimer = 0f;
     private float lookAroundTimer = 0f;
@@ -55,11 +62,83 @@ public class AI_Behavior : MonoBehaviour
     {
         nav.speed = patrolSpeed;
         nav.GoToNextPoint();
+        
+        // Скрываем Canvas при старте
+        if (youLoseCanvas != null)
+            youLoseCanvas.gameObject.SetActive(false); // ИЗМЕНИЛ: для Canvas
     }
 
     void Update()
     {
         playerVisible = vision.CanSeePlayer();
+        playerInInterestArea = vision.IsPlayerInInterestArea();
+
+        if (currentState != State.Flee)
+        {
+            if (playerInInterestArea)
+            {
+                player = vision.GetPlayer();
+                if (player != null)
+                {
+                    Vector3 playerWorldPos = player.position;
+                    
+                    if (!isInvestigatingPlayer)
+                    {
+                        isInvestigatingPlayer = true;
+                        interestTarget = null;
+                        noisePosition = playerWorldPos;
+                        currentState = State.Investigate;
+                        nav.Resume();
+                        nav.MoveTo(noisePosition);
+                        waitTimer = 0f;
+                    }
+                }
+            }
+            else
+            {
+                // Оставляем как есть
+            }
+
+            if (playerVisible && !isInvestigatingPlayer)
+            {
+                StartFlee();
+                return;
+            }
+
+            if (!isInvestigatingPlayer)
+            {
+                if (vision.TryGetInterestTarget(out Transform interest))
+                {
+                    bool shouldSwitch = false;
+                    
+                    if (interestTarget == null || interestTarget != interest || currentState != State.Investigate)
+                    {
+                        shouldSwitch = true;
+                    }
+                    
+                    if (shouldSwitch)
+                    {
+                        interestTarget = interest;
+                        noisePosition = interest.position;
+                        currentState = State.Investigate;
+                        nav.Resume();
+                        nav.MoveTo(noisePosition);
+                        waitTimer = 0f;
+                    }
+                }
+                else
+                {
+                    if (interestTarget != null)
+                    {
+                        interestTarget = null;
+                        if (currentState == State.Investigate)
+                        {
+                            EnterWaitPhase();
+                        }
+                    }
+                }
+            }
+        }
 
         switch (currentState)
         {
@@ -70,12 +149,12 @@ public class AI_Behavior : MonoBehaviour
         }
     }
 
-    // ---------------- ПАТРУЛЬ ----------------
     private void PatrolUpdate()
     {
+        nav.Resume();
         nav.speed = patrolSpeed;
 
-        if (playerVisible)
+        if (playerVisible && !isInvestigatingPlayer)
         {
             StartFlee();
             return;
@@ -85,24 +164,75 @@ public class AI_Behavior : MonoBehaviour
             EnterWaitPhase();
     }
 
-    // ---------------- ИССЛЕДОВАНИЕ ----------------
     private void InvestigateUpdate()
     {
         nav.speed = patrolSpeed;
+        nav.Resume();
 
-        if (playerVisible)
+        if (isInvestigatingPlayer)
         {
-            StartFlee();
-            return;
+            bool playerStillInInterest = vision.IsPlayerInInterestArea();
+            bool playerNowVisible = vision.CanSeePlayer();
+            player = vision.GetPlayer();
+            
+            if (playerNowVisible)
+            {
+                isInvestigatingPlayer = false;
+                StartFlee();
+                return;
+            }
+            
+            if (player != null)
+            {
+                Vector3 playerWorldPos = player.position;
+                noisePosition = playerWorldPos;
+                
+                nav.Resume();
+                nav.MoveTo(noisePosition);
+                
+                float distance = Vector3.Distance(transform.position, playerWorldPos);
+                
+                if (!playerStillInInterest)
+                {
+                    if (nav.ReachedDestination(1.0f))
+                    {
+                        isInvestigatingPlayer = false;
+                        EnterWaitPhase();
+                    }
+                }
+            }
+            else
+            {
+                isInvestigatingPlayer = false;
+                EnterWaitPhase();
+            }
         }
-
-        nav.MoveTo(noisePosition);
-
-        if (nav.ReachedDestination(0.5f))
-            EnterWaitPhase();
+        else if (interestTarget != null)
+        {
+            if (vision.TryGetInterestTarget(out Transform interest) && interest == interestTarget)
+            {
+                noisePosition = interestTarget.position;
+                nav.MoveTo(noisePosition);
+                
+                if (nav.ReachedDestination(0.5f))
+                {
+                    EnterWaitPhase();
+                }
+            }
+            else
+            {
+                interestTarget = null;
+                EnterWaitPhase();
+            }
+        }
+        else
+        {
+            nav.MoveTo(noisePosition);
+            if (nav.ReachedDestination(0.5f))
+                EnterWaitPhase();
+        }
     }
 
-    // ---------------- ОЖИДАНИЕ ----------------
     private void WaitUpdate()
     {
         waitTimer += Time.deltaTime;
@@ -130,7 +260,6 @@ public class AI_Behavior : MonoBehaviour
 
     public bool IsFrozen => currentState == State.Flee && fleePhase == FleePhase.Freeze;
 
-    // ---------------- ПОБЕГ ----------------
     private void FleeUpdate()
     {
         switch (fleePhase)
@@ -142,7 +271,6 @@ public class AI_Behavior : MonoBehaviour
         }
     }
 
-    // ---------------- Реакция на шум ----------------
     public void HearNoise(Vector3 position)
     {
         if (currentState != State.Flee && hearing.CanHear(position))
@@ -154,13 +282,11 @@ public class AI_Behavior : MonoBehaviour
         }
     }
 
-    // ---------- ФАЗА ОЦЕПЕНЕНИЯ ----------
     private void FreezePhase()
     {
         nav.Stop();
         animator.speed = 0f;
 
-        // Поворот к игроку во время замерзания
         player = vision.GetPlayer();
         if (player != null)
             LookAtTarget(player.position);
@@ -174,7 +300,6 @@ public class AI_Behavior : MonoBehaviour
         }
     }
 
-    // ---------- ПОВОРОТ К ИГРОКУ ----------
     private void RotateToPlayerPhase()
     {
         player = vision.GetPlayer();
@@ -189,7 +314,6 @@ public class AI_Behavior : MonoBehaviour
         }
     }
 
-    // ---------- ПОВОРОТ К ТОЧКЕ ПОБЕГА ----------
     private void RotateToFleePhase()
     {
         if (fleePoint != null)
@@ -200,24 +324,46 @@ public class AI_Behavior : MonoBehaviour
             fleePhase = FleePhase.Run;
     }
 
-    // ---------- ПОБЕГ ----------
-    private void RunPhase()
+   private void RunPhase()
+{
+    nav.Resume();
+    nav.speed = fleeSpeed;
+
+    if (fleePoint != null)
     {
-        nav.Resume();
-        nav.speed = fleeSpeed;
-
-        if (fleePoint != null)
-            nav.MoveTo(fleePoint.position);
-
-        if (nav.ReachedDestination(0.5f))
-        {
-            if (escapeManager != null)
-                escapeManager.ChangeColor();
-            EnterWaitPhase();
-        }       
+        nav.MoveTo(fleePoint.position);
+        
     }
 
-    // ---------------- ПЛАВНЫЙ ПОВОРОТ ----------------
+    if (nav.ReachedDestination(0.5f))
+    {
+        Debug.Log("=== ДОБЕЖАЛ ДО ТОЧКИ! ===");
+        Debug.Log($"Canvas назначен: {youLoseCanvas != null}");
+        
+        if (youLoseCanvas != null)
+        {
+            Debug.Log($"Canvas активен до: {youLoseCanvas.gameObject.activeSelf}");
+            youLoseCanvas.gameObject.SetActive(true);
+            Debug.Log($"Canvas активен после: {youLoseCanvas.gameObject.activeSelf}");
+            
+            // Сразу проверяем - виден ли Canvas на сцене?
+            if (youLoseCanvas.gameObject.activeInHierarchy)
+                Debug.Log("Canvas ВИДЕН В ИЕРАРХИИ!");
+            else
+                Debug.Log("Canvas НЕ ВИДЕН в иерархии!");
+        }
+        
+        if (escapeManager != null)
+            escapeManager.ChangeColor();
+            
+        // ОСТАНАВЛИВАЕМ ИГРУ чтобы увидеть результат
+        Time.timeScale = 0f;
+        Debug.Log("ИГРА ОСТАНОВЛЕНА!");
+        
+        EnterWaitPhase();
+    }       
+}
+
     private void LookAtTarget(Vector3 target)
     {
         Vector3 dir = (target - transform.position).normalized;
@@ -228,11 +374,12 @@ public class AI_Behavior : MonoBehaviour
         transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, Time.deltaTime * 7f);
     }
 
-    // ---------------- ЗАПУСК ПОБЕГА ----------------
     private void StartFlee()
     {
         currentState = State.Flee;
         isLookingAround = false;
+        isInvestigatingPlayer = false;
+        interestTarget = null;
 
         fleePhase = FleePhase.Freeze;
         stateTimer = freezeTime;
@@ -240,13 +387,14 @@ public class AI_Behavior : MonoBehaviour
         nav.Stop();
     }
 
-    // ---------------- ОСМОТР ----------------
     private void EnterWaitPhase()
     {
         currentState = State.Wait;
         waitTimer = 0f;
         StartLookAround();
         fleePhase = FleePhase.None;
+        isInvestigatingPlayer = false;
+        interestTarget = null;
     }
 
     private void StartLookAround()
@@ -255,7 +403,6 @@ public class AI_Behavior : MonoBehaviour
         lookAroundTimer = 0f;
     }
 
-    // ---------------- АНИМАЦИИ ----------------
     public string GetCurrentStateName()
     {
         if (currentState == State.Flee)

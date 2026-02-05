@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Anchor
   - Distract
+  - WinObject
   layers:
   - Default
   - TransparentFX

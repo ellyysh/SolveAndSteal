@@ -7,7 +7,7 @@ public class BreakablePotion : MonoBehaviour
     [Header("Break Settings")]
     public AudioClip breakSound;
     public GameObject brokenVersion;
-    public float destroyDelay = 0.1f;
+    public float destroyDelay = 3f; 
     public float minBreakForce = 5f;
 
     [Header("Noise Settings")]
@@ -17,6 +17,11 @@ public class BreakablePotion : MonoBehaviour
 
     [Header("Grab Settings")]
     public string activeLayerName = "DistractObject";
+
+    [Header("Sound Settings")]
+    public float soundVolume = 1f;
+    public bool use3DSound = true;
+    public float soundMaxDistance = 25f;
 
     [Header("Components")]
     private AudioSource audioSource;
@@ -28,8 +33,6 @@ public class BreakablePotion : MonoBehaviour
     private bool isBroken = false;
     private float noiseVisualTime = 0f;
     private bool isNoiseActive = false;
-
-    // Время появления для защиты от ранних столкновений
     private float spawnTime;
 
     void Start()
@@ -37,19 +40,23 @@ public class BreakablePotion : MonoBehaviour
         spawnTime = Time.time;
 
         // Инициализация компонентов
-        audioSource = GetComponent<AudioSource>();
-        if (audioSource == null)
-            audioSource = gameObject.AddComponent<AudioSource>();
-
         meshRenderer = GetComponent<MeshRenderer>();
         objectCollider = GetComponent<Collider>();
         rigidbody = GetComponent<Rigidbody>();
         grabInteractable = GetComponent<XRGrabInteractable>();
 
-        // Настройка GPU Instancing
+        // Создаем и настраиваем AudioSource
+        audioSource = gameObject.AddComponent<AudioSource>();
+        audioSource.playOnAwake = false;
+        audioSource.spatialBlend = use3DSound ? 1f : 0f;
+        audioSource.volume = soundVolume;
+        audioSource.maxDistance = soundMaxDistance;
+        audioSource.rolloffMode = AudioRolloffMode.Logarithmic;
+
+     
         SetupGpuInstancing();
 
-        // Подписка на события grab
+      
         if (grabInteractable != null)
         {
             grabInteractable.selectExited.AddListener(OnRelease);
@@ -58,7 +65,7 @@ public class BreakablePotion : MonoBehaviour
 
     void Update()
     {
-        // Обновление визуализации шума
+        
         if (isNoiseActive)
         {
             noiseVisualTime += Time.deltaTime;
@@ -101,9 +108,16 @@ public class BreakablePotion : MonoBehaviour
         if (breakSound != null && audioSource != null)
         {
             audioSource.PlayOneShot(breakSound);
+            
+            // Гарантируем что звук проиграется полностью
+            // Если звук длится дольше 3 секунд, увеличиваем время жизни
+            if (breakSound.length > destroyDelay)
+            {
+                destroyDelay = breakSound.length + 0.5f;
+            }
         }
 
-        // Прячем оригинал
+        // Прячем оригинал (визуально объект исчезает сразу)
         if (meshRenderer != null)
             meshRenderer.enabled = false;
 
@@ -118,7 +132,9 @@ public class BreakablePotion : MonoBehaviour
 
         // Отключаем взаимодействие
         if (grabInteractable != null)
+        {
             grabInteractable.enabled = false;
+        }
 
         // Создаем разбитую версию
         if (brokenVersion != null)
@@ -127,34 +143,50 @@ public class BreakablePotion : MonoBehaviour
             SetupBrokenPotion(brokenPotion);
         }
 
-        // Уничтожаем оригинал
+        // Уничтожаем оригинал через 3 секунды (или дольше если звук длиннее)
         Destroy(gameObject, destroyDelay);
     }
 
-    private void SetupBrokenPotion(GameObject brokenPotion)
+   private void SetupBrokenPotion(GameObject brokenPotion)
+{
+    
+    GameObject container = new GameObject("BrokenPotionContainer");
+    container.transform.position = transform.position;
+    container.transform.rotation = transform.rotation;
+    container.transform.localScale = Vector3.one;
+    
+    // Делаем brokenPotion дочерним объектом
+    brokenPotion.transform.SetParent(container.transform, true);
+    brokenPotion.transform.localPosition = Vector3.zero;
+    brokenPotion.transform.localRotation = Quaternion.identity;
+    brokenPotion.transform.localScale = Vector3.one;
+    
+    // Масштабируем контейнер под размер оригинальной бутылки
+    container.transform.localScale = transform.lossyScale;
+
+    Rigidbody[] shardRigidbodies = brokenPotion.GetComponentsInChildren<Rigidbody>();
+    foreach (Rigidbody shardRb in shardRigidbodies)
     {
-        brokenPotion.transform.localScale = transform.localScale;
+        Vector3 randomForce = new Vector3(
+            Random.Range(-2f, 2f),
+            Random.Range(1f, 3f),
+            Random.Range(-2f, 2f)
+        );
+        shardRb.AddForce(randomForce, ForceMode.Impulse);
 
-        Rigidbody[] shardRigidbodies = brokenPotion.GetComponentsInChildren<Rigidbody>();
-        foreach (Rigidbody shardRb in shardRigidbodies)
-        {
-            Vector3 randomForce = new Vector3(
-                Random.Range(-2f, 2f),
-                Random.Range(1f, 3f),
-                Random.Range(-2f, 2f)
-            );
-            shardRb.AddForce(randomForce, ForceMode.Impulse);
-
-            Vector3 randomTorque = new Vector3(
-                Random.Range(-10f, 10f),
-                Random.Range(-10f, 10f),
-                Random.Range(-10f, 10f)
-            );
-            shardRb.AddTorque(randomTorque, ForceMode.Impulse);
-        }
-
-        brokenPotion.layer = LayerMask.NameToLayer("DistractObject");
+        Vector3 randomTorque = new Vector3(
+            Random.Range(-10f, 10f),
+            Random.Range(-10f, 10f),
+            Random.Range(-10f, 10f)
+        );
+        shardRb.AddTorque(randomTorque, ForceMode.Impulse);
     }
+
+    brokenPotion.layer = LayerMask.NameToLayer("DistractObject");
+    
+    // Автоматически уничтожаем осколки через некоторое время
+    Destroy(container, 5f);
+}
 
     private void SetupGpuInstancing()
     {

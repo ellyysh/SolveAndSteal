@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.AI;
 
 public class AI_Navigation : MonoBehaviour
@@ -44,7 +44,20 @@ public class AI_Navigation : MonoBehaviour
     // Перейти к произвольной позиции (шум, игрок, объект)
     public void MoveTo(Vector3 position)
     {
-        currentDestination = position;
+        // Пробуем найти ближайшую точку на NavMesh для целевой позиции
+        UnityEngine.AI.NavMeshHit hit;
+        if (UnityEngine.AI.NavMesh.SamplePosition(position, out hit, 5f, UnityEngine.AI.NavMesh.AllAreas))
+        {
+            currentDestination = hit.position;
+        }
+        else
+        {
+            // Если не нашли точку на NavMesh, используем исходную позицию
+            // Но устанавливаем Y на уровне текущей позиции агента
+            currentDestination = position;
+            currentDestination.y = agent.transform.position.y;
+        }
+        
         agent.SetDestination(currentDestination);
         destinationSet = true;
     }

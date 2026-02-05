@@ -28,6 +28,109 @@ public class AI_Vision : MonoBehaviour
     {
         currentViewRadius = viewRadius;
         currentViewAngle = viewAngle;
+        
+        // Автоматический поиск камеры, если playerHead не установлен
+        if (playerHead == null)
+        {
+            FindPlayerHead();
+        }
+    }
+
+    void Start()
+    {
+        // Повторная попытка найти камеру в Start (на случай, если она появилась позже)
+        if (playerHead == null)
+        {
+            FindPlayerHead();
+        }
+    }
+
+    /// <summary>
+    /// Автоматически находит камеру игрока (Main Camera или камеру в XR Origin)
+    /// </summary>
+    private void FindPlayerHead()
+    {
+        // Сначала пробуем найти Main Camera
+        Camera mainCamera = Camera.main;
+        if (mainCamera != null)
+        {
+            playerHead = mainCamera.transform;
+            Debug.Log($"[AI_Vision] Найден Main Camera: {mainCamera.name} на {gameObject.name}");
+            return;
+        }
+
+        // Если Main Camera не найден, ищем любую камеру с тегом "MainCamera"
+        GameObject cameraObj = GameObject.FindGameObjectWithTag("MainCamera");
+        if (cameraObj != null)
+        {
+            playerHead = cameraObj.transform;
+            Debug.Log($"[AI_Vision] Найден объект с тегом MainCamera: {cameraObj.name} на {gameObject.name}");
+            return;
+        }
+
+        // Если не нашли, ищем камеру в XR Origin (через рефлексию, чтобы не требовать зависимости)
+        try
+        {
+            System.Type xrOriginType = System.Type.GetType("UnityEngine.XR.Interaction.Toolkit.XROrigin, Unity.XR.Interaction.Toolkit");
+            if (xrOriginType != null)
+            {
+                UnityEngine.Object xrOrigin = FindFirstObjectByType(xrOriginType);
+                if (xrOrigin != null)
+                {
+                    var cameraProperty = xrOriginType.GetProperty("Camera");
+                    if (cameraProperty != null)
+                    {
+                        Camera xrCamera = cameraProperty.GetValue(xrOrigin) as Camera;
+                        if (xrCamera != null)
+                        {
+                            playerHead = xrCamera.transform;
+                            Debug.Log($"[AI_Vision] Найден XR Origin Camera: {xrCamera.name} на {gameObject.name}");
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // XR Toolkit не установлен или недоступен - пропускаем
+        }
+
+        // Последняя попытка - найти любую активную камеру
+        Camera[] cameras = FindObjectsByType<Camera>(FindObjectsSortMode.None);
+        foreach (Camera cam in cameras)
+        {
+            if (cam.enabled && cam.gameObject.activeInHierarchy)
+            {
+                playerHead = cam.transform;
+                Debug.Log($"[AI_Vision] Автоматически найден playerHead: {cam.name} на {gameObject.name}");
+                return;
+            }
+        }
+
+        Debug.LogWarning($"[AI_Vision] Не удалось найти камеру игрока на {gameObject.name}. Установите playerHead вручную в инспекторе.");
+    }
+
+    /// <summary>
+    /// Получает мировую позицию головы игрока
+    /// transform.position всегда возвращает мировую позицию, даже для дочерних объектов
+    /// </summary>
+    private Vector3 GetPlayerWorldPosition()
+    {
+        if (playerHead == null) return Vector3.zero;
+        
+        // transform.position всегда возвращает мировую позицию в Unity
+        // Даже если объект является дочерним, position возвращает мировые координаты
+        Vector3 worldPos = playerHead.position;
+        
+        // Отладка: проверяем, что позиция валидна
+        if (float.IsNaN(worldPos.x) || float.IsNaN(worldPos.y) || float.IsNaN(worldPos.z))
+        {
+            Debug.LogError($"[AI_Vision] Некорректная позиция игрока на {gameObject.name}: {worldPos}");
+            return Vector3.zero;
+        }
+        
+        return worldPos;
     }
 
     public bool CanSeePlayer()
@@ -35,8 +138,9 @@ public class AI_Vision : MonoBehaviour
         if (playerHead == null) return false;
 
         Vector3 eyePosition = transform.position + Vector3.up * 1.5f;
-        Vector3 dirToPlayer = (playerHead.position - eyePosition).normalized;
-        float distToPlayer = Vector3.Distance(eyePosition, playerHead.position);
+        Vector3 playerWorldPos = GetPlayerWorldPosition();
+        Vector3 dirToPlayer = (playerWorldPos - eyePosition).normalized;
+        float distToPlayer = Vector3.Distance(eyePosition, playerWorldPos);
 
         // Направление взгляда — из головы, если она есть
         Vector3 forward = headBone != null ? headBone.forward : transform.forward;
@@ -52,7 +156,57 @@ public class AI_Vision : MonoBehaviour
         return false;
     }
 
-    public Transform GetPlayer() => playerHead;
+    public Transform GetPlayer()
+    {
+        // Если playerHead потерян, пытаемся найти снова
+        if (playerHead == null)
+        {
+            FindPlayerHead();
+        }
+        return playerHead;
+    }
+
+    /// <summary>
+    /// Проверяет, находится ли игрок в области интереса (interestRadius и interestViewAngle)
+    /// </summary>
+    public bool IsPlayerInInterestArea()
+    {
+        if (playerHead == null || interestRadius <= 0f)
+        {
+            if (playerHead == null && Time.frameCount % 300 == 0) // Каждые 5 секунд
+            {
+                Debug.LogWarning($"[AI_Vision] playerHead == null на {gameObject.name}. Попытка найти камеру...");
+                FindPlayerHead();
+            }
+            return false;
+        }
+
+        Vector3 eyePosition = transform.position + Vector3.up * 1.5f;
+        Vector3 playerWorldPos = GetPlayerWorldPosition();
+        
+        if (playerWorldPos == Vector3.zero)
+            return false;
+            
+        Vector3 dirToPlayer = (playerWorldPos - eyePosition).normalized;
+        float distToPlayer = Vector3.Distance(eyePosition, playerWorldPos);
+
+        // Проверяем расстояние
+        if (distToPlayer > interestRadius)
+            return false;
+
+        // Проверяем угол обзора интереса
+        Vector3 forward = headBone != null ? headBone.forward : transform.forward;
+        float angle = Vector3.Angle(forward, dirToPlayer);
+
+        if (angle > interestViewAngle / 2f)
+            return false;
+
+        // Проверяем препятствия
+        if (Physics.Raycast(eyePosition, dirToPlayer, distToPlayer, obstacleMask))
+            return false;
+
+        return true;
+    }
 
     public bool TryGetInterestTarget(out Transform interest)
     {
@@ -118,8 +272,21 @@ public class AI_Vision : MonoBehaviour
 
         if (playerHead != null)
         {
-            Gizmos.color = CanSeePlayer() ? Color.yellow : Color.gray;
-            Gizmos.DrawLine(eyePosition, playerHead.position);
+            Vector3 playerWorldPos = GetPlayerWorldPosition();
+            
+            if (CanSeePlayer())
+            {
+                Gizmos.color = Color.yellow;
+            }
+            else if (IsPlayerInInterestArea())
+            {
+                Gizmos.color = Color.cyan; // Игрок в области интереса
+            }
+            else
+            {
+                Gizmos.color = Color.gray;
+            }
+            Gizmos.DrawLine(eyePosition, playerWorldPos);
         }
     }
 }
